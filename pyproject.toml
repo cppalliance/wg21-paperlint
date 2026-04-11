@@ -1,0 +1,23 @@
+[project]
+name = "paperlint"
+version = "0.1.0"
+description = "WG21 C++ standards paper evaluation pipeline"
+requires-python = ">=3.10"
+license = {text = "BSL-1.0"}
+authors = [{name = "Sergio DuBois", email = "sentientsergio@gmail.com"}]
+
+dependencies = [
+    "anthropic",
+    "openai",
+    "python-dotenv",
+    "beautifulsoup4",
+    "pymupdf",
+    "requests",
+]
+
+[project.scripts]
+paperlint = "paperlint.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"

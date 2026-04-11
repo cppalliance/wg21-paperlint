@@ -1,0 +1,6 @@
+anthropic
+openai
+python-dotenv
+beautifulsoup4
+pymupdf
+requests
