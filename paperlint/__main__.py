@@ -26,14 +26,9 @@ from pathlib import Path
 from paperlint.orchestrator import run_paper_eval, _git_sha, _prompt_hash, SCHEMA_VERSION
 
 
-def _eval_one_paper(paper_ref: str, output_dir: Path, all_openrouter: bool) -> dict:
-    """Wrapper for multiprocessing — each worker calls this."""
+def _eval_one_paper(paper_ref: str, output_dir: Path) -> dict:
     try:
-        result = run_paper_eval(
-            paper_ref,
-            output_dir=output_dir,
-            all_openrouter=all_openrouter,
-        )
+        result = run_paper_eval(paper_ref, output_dir=output_dir)
         return {"paper": paper_ref, "status": "ok", "result": result}
     except Exception as e:
         traceback.print_exc()
@@ -41,11 +36,9 @@ def _eval_one_paper(paper_ref: str, output_dir: Path, all_openrouter: bool) -> d
 
 
 def _build_index(output_dir: Path, mailing_id: str, results: list[dict]) -> dict:
-    """Build index.json from completed evaluation results."""
     succeeded = [r for r in results if r["status"] == "ok" and r.get("result")]
     failed = [r for r in results if r["status"] == "error"]
 
-    # Aggregate per-room data
     rooms: dict[str, dict] = defaultdict(lambda: {"papers": [], "total_findings": 0})
     papers_summary = []
 
@@ -55,7 +48,6 @@ def _build_index(output_dir: Path, mailing_id: str, results: list[dict]) -> dict
         audience = ev.get("audience", "Unknown")
         n_findings = ev.get("findings_passed", 0)
 
-        # A paper can target multiple rooms (e.g. "LEWG, SG6")
         for room in [a.strip() for a in audience.split(",")]:
             if room:
                 rooms[room]["papers"].append(paper_id)
@@ -89,16 +81,10 @@ def _build_index(output_dir: Path, mailing_id: str, results: list[dict]) -> dict
 
 
 def cmd_eval(args: argparse.Namespace) -> int:
-    """Handle: python -m paperlint eval <paper> --output-dir ./out/"""
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-
     try:
-        run_paper_eval(
-            args.paper,
-            output_dir=output_dir,
-            all_openrouter=args.all_openrouter,
-        )
+        run_paper_eval(args.paper, output_dir=output_dir)
         return 0
     except FileNotFoundError as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -110,7 +96,6 @@ def cmd_eval(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    """Handle: python -m paperlint run <mailing_id> --output-dir ./data/"""
     from paperlint.mailing import fetch_mailing_paper_ids
 
     output_dir = Path(args.output_dir)
@@ -135,17 +120,15 @@ def cmd_run(args: argparse.Namespace) -> int:
     results: list[dict] = []
 
     if max_processes == 1:
-        # Sequential — simpler output, easier to debug
         for paper_id in paper_ids:
-            result = _eval_one_paper(paper_id, output_dir, args.all_openrouter)
+            result = _eval_one_paper(paper_id, output_dir)
             results.append(result)
             status = "OK" if result["status"] == "ok" else "FAILED"
             print(f"\n  [{status}] {paper_id}")
     else:
-        # Parallel
         with ProcessPoolExecutor(max_workers=max_processes) as executor:
             futures = {
-                executor.submit(_eval_one_paper, pid, output_dir, args.all_openrouter): pid
+                executor.submit(_eval_one_paper, pid, output_dir): pid
                 for pid in paper_ids
             }
             for future in as_completed(futures):
@@ -155,12 +138,10 @@ def cmd_run(args: argparse.Namespace) -> int:
                 status = "OK" if result["status"] == "ok" else "FAILED"
                 print(f"\n  [{status}] {pid}")
 
-    # Build and write index.json
     index = _build_index(output_dir, mailing_id, results)
     index_path = output_dir / "index.json"
     index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    # Summary
     succeeded = index["succeeded"]
     failed = index["failed"]
     total = index["total_papers"]
@@ -180,49 +161,15 @@ def main() -> int:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # --- eval subcommand ---
-    eval_parser = subparsers.add_parser(
-        "eval",
-        help="Evaluate a single paper",
-    )
-    eval_parser.add_argument(
-        "paper",
-        help="Paper ID (e.g. P3642R4) or path to local file",
-    )
-    eval_parser.add_argument(
-        "--output-dir", required=True,
-        help="Directory to write evaluation output",
-    )
-    eval_parser.add_argument(
-        "--all-openrouter", action="store_true",
-        help="Route all calls through OpenRouter (no Anthropic API needed)",
-    )
+    eval_parser = subparsers.add_parser("eval", help="Evaluate a single paper")
+    eval_parser.add_argument("paper", help="Paper ID (e.g. P3642R4) or path to local file")
+    eval_parser.add_argument("--output-dir", required=True, help="Output directory")
 
-    # --- run subcommand ---
-    run_parser = subparsers.add_parser(
-        "run",
-        help="Evaluate all papers in a mailing",
-    )
-    run_parser.add_argument(
-        "mailing_id",
-        help="Mailing identifier (e.g. 2026-02)",
-    )
-    run_parser.add_argument(
-        "--output-dir", required=True,
-        help="Directory to write evaluation output",
-    )
-    run_parser.add_argument(
-        "--max-cap", type=int, default=0,
-        help="Maximum number of papers to evaluate (0 = all)",
-    )
-    run_parser.add_argument(
-        "--max-processes", type=int, default=10,
-        help="Maximum parallel workers (default: 10)",
-    )
-    run_parser.add_argument(
-        "--all-openrouter", action="store_true",
-        help="Route all calls through OpenRouter (no Anthropic API needed)",
-    )
+    run_parser = subparsers.add_parser("run", help="Evaluate all papers in a mailing")
+    run_parser.add_argument("mailing_id", help="Mailing identifier (e.g. 2026-02)")
+    run_parser.add_argument("--output-dir", required=True, help="Output directory")
+    run_parser.add_argument("--max-cap", type=int, default=0, help="Max papers (0 = all)")
+    run_parser.add_argument("--max-processes", type=int, default=10, help="Parallel workers")
 
     args = parser.parse_args()
 

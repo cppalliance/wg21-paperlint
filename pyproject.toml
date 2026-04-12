@@ -7,7 +7,6 @@ license = {text = "BSL-1.0"}
 authors = [{name = "Sergio DuBois", email = "sentientsergio@gmail.com"}]
 
 dependencies = [
-    "anthropic",
     "openai",
     "python-dotenv",
     "beautifulsoup4",
