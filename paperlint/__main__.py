@@ -23,7 +23,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
-from paperlint.orchestrator import run_paper_eval, _git_sha, SCHEMA_VERSION
+from paperlint.orchestrator import run_paper_eval, _git_sha, _prompt_hash, SCHEMA_VERSION
 
 
 def _eval_one_paper(paper_ref: str, output_dir: Path, all_openrouter: bool) -> dict:
@@ -72,6 +72,7 @@ def _build_index(output_dir: Path, mailing_id: str, results: list[dict]) -> dict
     index = {
         "schema_version": SCHEMA_VERSION,
         "paperlint_sha": _git_sha(),
+        "prompt_hash": _prompt_hash(),
         "mailing_id": mailing_id,
         "generated": datetime.now(timezone.utc).isoformat(),
         "total_papers": len(results),

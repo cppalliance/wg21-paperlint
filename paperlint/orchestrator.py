@@ -74,6 +74,14 @@ def _git_sha() -> str:
         return "unknown"
 
 
+def _prompt_hash() -> str:
+    """Hash of prompt + rubric file contents. Changes only when evaluation logic changes."""
+    import hashlib
+    files = sorted(PROMPTS_DIR.glob("*.md")) + [RUBRIC_PATH]
+    content = b"".join(f.read_bytes() for f in files if f.exists())
+    return hashlib.sha256(content).hexdigest()[:12]
+
+
 def _log_openai_compatible_error(step: str, exc: BaseException, *, model: object = None) -> None:
     """Print a single stderr block for CI logs."""
     lines: list[str] = [
@@ -1113,6 +1121,7 @@ def run_paper_eval(
     eval_json = {
         "schema_version": SCHEMA_VERSION,
         "paperlint_sha": _git_sha(),
+        "prompt_hash": _prompt_hash(),
         "paper": meta.paper,
         "title": meta.title,
         "authors": meta.authors,
