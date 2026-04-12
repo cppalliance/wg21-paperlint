@@ -19,7 +19,7 @@ import json
 import sys
 import traceback
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -126,7 +126,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             status = "OK" if result["status"] == "ok" else "FAILED"
             print(f"\n  [{status}] {paper_id}")
     else:
-        with ProcessPoolExecutor(max_workers=max_processes) as executor:
+        with ThreadPoolExecutor(max_workers=max_processes) as executor:
             futures = {
                 executor.submit(_eval_one_paper, pid, output_dir): pid
                 for pid in paper_ids
