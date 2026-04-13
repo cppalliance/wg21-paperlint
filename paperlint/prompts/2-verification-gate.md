@@ -78,7 +78,7 @@ These are illustrations of the principle, not an exhaustive list. The principle 
 For each candidate finding, return one of:
 
 - **REJECT** — You found a legitimate reason. State the reason in one sentence. The finding is discarded.
-- **PASS** — You searched for a reason and found none. The defect appears genuine. The finding proceeds to publication.
+- **PASS** — You can independently verify the axiom violation against the source text. The defect is mechanically confirmed, not merely unrefuted. If you cannot positively confirm the defect, REJECT.
 - **REFER** — You found a partial justification but are not confident. The finding requires human review. State what you found and what remains uncertain.
 
 A finding that fails any single check is rejected. You do not need unanimity of failure — one is enough.
