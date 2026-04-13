@@ -518,60 +518,57 @@ def step_gate(client: openai.OpenAI, paper_text: str,
     return gated
 
 
-def step_eval_writer(client: openai.OpenAI, meta: PaperMeta,
-                     gated: list[GatedFinding]) -> dict:
-    """Step 3: Evaluation Writer."""
-    print("\n--- Step 3: Evaluation Writer ---")
+def step_summary_writer(client: openai.OpenAI, meta: PaperMeta,
+                        n_findings: int) -> str:
+    """Step 3: Write the evaluation summary. Findings pass through from Discovery untouched."""
+    print("\n--- Step 3: Summary ---")
 
-    passed = [g for g in gated if g.verdict == "PASS"]
+    if n_findings == 0:
+        summary = f"No objective problems found in {meta.paper} — {meta.title}."
+        print(f"  Clean paper: {summary}")
+        return summary
+
     system_prompt = (PROMPTS_DIR / "3-evaluation-writer.md").read_text(encoding="utf-8")
 
     json_instruction = (
         "\n\n## Output Format\n\n"
         "Return ONLY a JSON object:\n"
-        '{"summary": "2-3 sentence summary, plain text", '
-        '"findings": [{"location": "§X.Y", "description": "one-line defect, plain text"}]}\n\n'
-        "Do NOT include references — those are assembled separately.\n"
-        "Do NOT use markdown formatting in values.\n"
+        '{"summary": "2-3 sentence summary of what the paper proposes and what was found. Plain text."}\n\n'
+        "Write ONLY the summary. Findings are assembled separately.\n"
         "Return ONLY the JSON."
     )
 
-    if not passed:
-        print("  No passed findings — clean eval.")
-        return {
-            "summary": f"No objective problems found in {meta.paper} — {meta.title}.",
-            "findings": [],
-        }
-
-    user_message = _format_findings_for_eval(meta, passed)
+    user_content = (
+        f"Paper: {meta.paper} — {meta.title}\n"
+        f"Authors: {', '.join(meta.authors)}\n"
+        f"Audience: {meta.target_group}\n"
+        f"Type: {meta.paper_type}\n"
+        f"Abstract: {meta.abstract}\n\n"
+        f"Number of findings that passed verification: {n_findings}\n\n"
+        f"Write a 2-3 sentence summary of what this paper proposes. "
+        f"State what it does neutrally — do not use the author's persuasive framing."
+    )
 
     response = _call_with_retry(
-        client, "Eval Writer",
-        model=OPENROUTER_MODEL,
-        max_tokens=MAX_TOKENS["eval_writer"],
+        client, "Summary",
+        model=OPENROUTER_SONNET,
+        max_tokens=512,
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": system_prompt + json_instruction},
-            {"role": "user", "content": user_message},
+            {"role": "user", "content": user_content},
         ],
-        extra_body={
-            "thinking": {
-                "type": "enabled",
-                "budget_tokens": THINKING_BUDGET["eval_writer"],
-            },
-        },
     )
 
-    _log_usage("Eval Writer", response, THINKING_BUDGET["eval_writer"])
-
     raw = _extract_text(response)
-    if not raw:
-        return {"summary": f"Evaluation of {meta.paper}.", "findings": []}
     try:
-        return json.loads(_strip_fences(raw))
-    except json.JSONDecodeError as e:
-        print(f"  WARNING: JSON parse failed: {e}")
-        return {"summary": f"Evaluation of {meta.paper}.", "findings": []}
+        parsed = json.loads(_strip_fences(raw))
+        summary = parsed.get("summary", f"Evaluation of {meta.paper}.")
+    except json.JSONDecodeError:
+        summary = f"Evaluation of {meta.paper} — {meta.title}."
+
+    print(f"  Summary: {summary[:100]}...")
+    return summary
 
 
 # ---------------------------------------------------------------------------
@@ -679,29 +676,37 @@ def run_paper_eval(
         [{"finding_number": g.finding.number, "verdict": g.verdict, "reason": g.reason}
          for g in gated], indent=2), encoding="utf-8")
 
-    # Step 3: Evaluation Writer
-    eval_result = step_eval_writer(client, meta, gated)
-
-    eval_path = paper_output_dir / "3-eval.json"
-    eval_path.write_text(json.dumps(eval_result, indent=2, ensure_ascii=False), encoding="utf-8")
-
-    # Step 4: Assembly
+    # Step 3: Summary
     passed = [g for g in gated if g.verdict == "PASS"]
+    summary = step_summary_writer(client, meta, len(passed))
 
+    # Step 4: Assembly — findings pass through from Discovery, unmodified
+    # References are numbered per quote, not per finding.
+    # Build references first, then attach reference numbers to findings.
     references = []
-    eval_findings = eval_result.get("findings", [])
-    for i, gf in enumerate(passed):
-        ref_num = i + 1
-        if i < len(eval_findings):
-            eval_findings[i]["reference_number"] = ref_num
-        for ev in gf.finding.evidence:
+    ref_counter = 1
+    output_findings = []
+
+    for gf in passed:
+        f = gf.finding
+        finding_refs = []
+        for ev in f.evidence:
             if ev.verified:
                 references.append({
-                    "number": ref_num,
+                    "number": ref_counter,
                     "location": ev.location,
                     "quote": ev.quote,
                     "verified": True,
                 })
+                finding_refs.append(ref_counter)
+                ref_counter += 1
+        output_findings.append({
+            "location": f.evidence[0].location if f.evidence else "",
+            "description": f.defect,
+            "category": f.category,
+            "correction": f.correction,
+            "references": finding_refs,
+        })
 
     eval_json = {
         "schema_version": SCHEMA_VERSION,
@@ -718,8 +723,8 @@ def run_paper_eval(
         "findings_discovered": len(findings),
         "findings_passed": len(passed),
         "findings_rejected": len([g for g in gated if g.verdict == "REJECT"]),
-        "summary": eval_result.get("summary", ""),
-        "findings": eval_findings,
+        "summary": summary,
+        "findings": output_findings,
         "references": references,
     }
 
