@@ -100,8 +100,8 @@ class Evidence:
     location: str
     quote: str
     verified: bool = False
-    start_char: int | None = None
-    end_char: int | None = None
+    extracted_char_start: int | None = None
+    extracted_char_end: int | None = None
 
 
 @dataclass
@@ -386,8 +386,8 @@ def step_verify_quotes(findings: list[Finding], source_text: str) -> list[Findin
             idx = source_text.find(ev.quote)
             if idx >= 0:
                 ev.verified = True
-                ev.start_char = idx
-                ev.end_char = idx + len(ev.quote)
+                ev.extracted_char_start = idx
+                ev.extracted_char_end = idx + len(ev.quote)
                 status = "EXACT"
             else:
                 norm_quote = " ".join(ev.quote.split())
@@ -708,9 +708,9 @@ def run_paper_eval(
                     "quote": ev.quote,
                     "verified": True,
                 }
-                if ev.start_char is not None:
-                    ref["start_char"] = ev.start_char
-                    ref["end_char"] = ev.end_char
+                if ev.extracted_char_start is not None:
+                    ref["extracted_char_start"] = ev.extracted_char_start
+                    ref["extracted_char_end"] = ev.extracted_char_end
                 references.append(ref)
                 finding_refs.append(ref_counter)
                 ref_counter += 1
