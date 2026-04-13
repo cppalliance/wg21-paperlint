@@ -100,6 +100,8 @@ class Evidence:
     location: str
     quote: str
     verified: bool = False
+    start_char: int | None = None
+    end_char: int | None = None
 
 
 @dataclass
@@ -381,13 +383,21 @@ def step_verify_quotes(findings: list[Finding], source_text: str) -> list[Findin
     for f in findings:
         all_verified = True
         for ev in f.evidence:
-            exact = ev.quote in source_text
-            if not exact:
-                norm = " ".join(ev.quote.split()) in source_norm
+            idx = source_text.find(ev.quote)
+            if idx >= 0:
+                ev.verified = True
+                ev.start_char = idx
+                ev.end_char = idx + len(ev.quote)
+                status = "EXACT"
             else:
-                norm = False
-            ev.verified = exact or norm
-            status = "EXACT" if exact else ("NORM" if norm else "MISS")
+                norm_quote = " ".join(ev.quote.split())
+                norm_idx = source_norm.find(norm_quote)
+                if norm_idx >= 0:
+                    ev.verified = True
+                    status = "NORM"
+                else:
+                    ev.verified = False
+                    status = "MISS"
             if not ev.verified:
                 all_verified = False
             print(f"    #{f.number} [{status}] \"{ev.quote[:60]}\"")
@@ -692,12 +702,16 @@ def run_paper_eval(
         finding_refs = []
         for ev in f.evidence:
             if ev.verified:
-                references.append({
+                ref = {
                     "number": ref_counter,
                     "location": ev.location,
                     "quote": ev.quote,
                     "verified": True,
-                })
+                }
+                if ev.start_char is not None:
+                    ref["start_char"] = ev.start_char
+                    ref["end_char"] = ev.end_char
+                references.append(ref)
                 finding_refs.append(ref_counter)
                 ref_counter += 1
         output_findings.append({
