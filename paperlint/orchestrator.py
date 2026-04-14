@@ -334,8 +334,8 @@ def step_discovery(client: openai.OpenAI, clean_text: str, meta: PaperMeta) -> l
             parsed = _parse_json(raw, "Discovery")
             break
         except json.JSONDecodeError:
-            if attempt == 0:
-                print("  Retrying Discovery (JSON parse failed, attempt 2)...")
+            if attempt < 2:
+                print(f"  Retrying Discovery (JSON parse failed, attempt {attempt + 2})...")
                 user_content = (
                     f"<paper title=\"{meta.paper} — {meta.title}\" "
                     f"target_group=\"{meta.target_group}\" "
@@ -516,8 +516,8 @@ def step_gate(client: openai.OpenAI, paper_text: str,
             parsed = _parse_json(raw, f"Gate paper={meta.paper}")
             break
         except json.JSONDecodeError:
-            if attempt == 0:
-                print("  Retrying Gate (JSON parse failed, attempt 2)...")
+            if attempt < 2:
+                print(f"  Retrying Gate (JSON parse failed, attempt {attempt + 2})...")
             else:
                 raise
 
