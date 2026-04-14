@@ -23,7 +23,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
-from paperlint.orchestrator import run_paper_eval, _git_sha, _prompt_hash, SCHEMA_VERSION
+from paperlint.orchestrator import (
+    run_paper_eval,
+    _git_sha,
+    _prompt_hash,
+    SCHEMA_VERSION,
+)
 
 
 def _eval_one_paper(paper_ref: str, output_dir: Path) -> dict:
@@ -53,13 +58,15 @@ def _build_index(output_dir: Path, mailing_id: str, results: list[dict]) -> dict
                 rooms[room]["papers"].append(paper_id)
                 rooms[room]["total_findings"] += n_findings
 
-        papers_summary.append({
-            "paper": paper_id,
-            "title": ev.get("title", ""),
-            "audience": audience,
-            "findings_passed": n_findings,
-            "findings_discovered": ev.get("findings_discovered", 0),
-        })
+        papers_summary.append(
+            {
+                "paper": paper_id,
+                "title": ev.get("title", ""),
+                "audience": audience,
+                "findings_passed": n_findings,
+                "findings_discovered": ev.get("findings_discovered", 0),
+            }
+        )
 
     index = {
         "schema_version": SCHEMA_VERSION,
@@ -75,7 +82,9 @@ def _build_index(output_dir: Path, mailing_id: str, results: list[dict]) -> dict
     }
 
     if failed:
-        index["failed_papers"] = [{"paper": r["paper"], "error": r.get("error", "")} for r in failed]
+        index["failed_papers"] = [
+            {"paper": r["paper"], "error": r.get("error", "")} for r in failed
+        ]
 
     return index
 
@@ -107,6 +116,8 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     print(f"Fetching paper list for mailing {mailing_id}...")
     paper_ids = fetch_mailing_paper_ids(mailing_id)
+    if args.limit:
+        paper_ids = paper_ids[: args.limit]
 
     if not paper_ids:
         print(f"No papers found for mailing {mailing_id}", file=sys.stderr)
@@ -140,13 +151,17 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     index = _build_index(output_dir, mailing_id, results)
     index_path = output_dir / "index.json"
-    index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False), encoding="utf-8")
+    index_path.write_text(
+        json.dumps(index, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     succeeded = index["succeeded"]
     failed = index["failed"]
     total = index["total_papers"]
     print(f"\n{'=' * 60}")
-    print(f"Mailing {mailing_id} complete: {succeeded}/{total} succeeded, {failed} failed")
+    print(
+        f"Mailing {mailing_id} complete: {succeeded}/{total} succeeded, {failed} failed"
+    )
     print(f"Rooms: {', '.join(index['rooms'].keys())}")
     print(f"Index: {index_path}")
     print(f"{'=' * 60}")
@@ -159,28 +174,56 @@ def main() -> int:
         prog="paperlint",
         description="Evaluate WG21 papers for mechanically verifiable defects",
     )
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(
+        dest="command",
+        required=False,
+        metavar="COMMAND",
+        help="eval — one paper | run — full mailing (default: run if omitted)",
+    )
 
     eval_parser = subparsers.add_parser("eval", help="Evaluate a single paper")
-    eval_parser.add_argument("paper", help="Paper ID (e.g. P3642R4) or path to local file")
-    eval_parser.add_argument("--output-dir", required=True, help="Output directory")
+    eval_parser.add_argument(
+        "paper", help="Paper ID (e.g. P3642R4) or path to local file"
+    )
+    eval_parser.add_argument("--output-dir", default="./data", help="Output directory")
 
     run_parser = subparsers.add_parser("run", help="Evaluate all papers in a mailing")
-    run_parser.add_argument("mailing_id", help="Mailing identifier (e.g. 2026-02)")
-    run_parser.add_argument("--output-dir", required=True, help="Output directory")
-    run_parser.add_argument("--max-cap", type=int, default=0, help="Max papers (0 = all)")
-    run_parser.add_argument("--max-processes", type=int, default=10, help="Parallel workers")
+    run_parser.add_argument(
+        "mailing_id", default="2026-02", help="Mailing identifier (e.g. 2026-02)"
+    )
+    run_parser.add_argument("--output-dir", default="./data", help="Output directory")
+    run_parser.add_argument(
+        "--max-cap", type=int, default=0, help="Max papers (0 = all)"
+    )
+    run_parser.add_argument(
+        "--max-processes", type=int, default=10, help="Parallel workers"
+    )
 
     args = parser.parse_args()
 
+    if args.command is None:
+        args.command = "run"
+        args.mailing_id = "2026-01"
+        args.output_dir = "./data"
+        args.max_cap = 0
+        args.max_processes = 10
+        args.limit = 50
+
+    # if args.command is None:
+    #     args.command = "eval"
+    #     args.paper = "P3950R0"
+    #     args.output_dir = "./data"
+
     if args.command == "eval":
         return cmd_eval(args)
-    elif args.command == "run":
+    if args.command == "run":
         return cmd_run(args)
-    else:
-        parser.print_help()
-        return 1
+
+    parser.print_help()
+    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    _code = main()
+    if _code:
+        raise SystemExit(_code)

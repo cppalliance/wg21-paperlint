@@ -61,11 +61,15 @@ RETRY_BASE_DELAY = 10
 
 def _git_sha() -> str:
     try:
-        return subprocess.check_output(
-            ["git", "rev-parse", "HEAD"],
-            cwd=_PKG_ROOT,
-            stderr=subprocess.DEVNULL,
-        ).decode().strip()[:12]
+        return (
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"],
+                cwd=_PKG_ROOT,
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()[:12]
+        )
     except Exception:
         return "unknown"
 
@@ -94,6 +98,7 @@ def _log_error(step: str, exc: BaseException, *, model: object = None) -> None:
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class Evidence:
@@ -139,6 +144,7 @@ class PaperMeta:
 # API call helpers
 # ---------------------------------------------------------------------------
 
+
 def _call_with_retry(client: openai.OpenAI, step: str, **kwargs):
     model = kwargs.get("model", "?")
     for attempt in range(MAX_RETRIES):
@@ -149,7 +155,9 @@ def _call_with_retry(client: openai.OpenAI, step: str, **kwargs):
                 _log_error(step, e, model=model)
                 raise
             wait = RETRY_BASE_DELAY * (attempt + 1)
-            print(f"  [{step}] Rate limited. Waiting {wait}s ({attempt + 1}/{MAX_RETRIES})...")
+            print(
+                f"  [{step}] Rate limited. Waiting {wait}s ({attempt + 1}/{MAX_RETRIES})..."
+            )
             time.sleep(wait)
         except Exception as e:
             _log_error(step, e, model=model)
@@ -161,8 +169,10 @@ def _log_usage(step: str, response, budget: int):
     prompt_tok = u.prompt_tokens if u else 0
     completion_tok = u.completion_tokens if u else 0
     total_tok = u.total_tokens if u else 0
-    print(f"\n  [{step}] tokens — prompt: {prompt_tok} | completion: {completion_tok} "
-          f"| total: {total_tok} | thinking_budget: {budget}")
+    print(
+        f"\n  [{step}] tokens — prompt: {prompt_tok} | completion: {completion_tok} "
+        f"| total: {total_tok} | thinking_budget: {budget}"
+    )
 
 
 def _extract_text(response) -> str:
@@ -176,32 +186,53 @@ def _extract_text(response) -> str:
 def _strip_fences(raw: str) -> str:
     raw = raw.strip()
     if raw.startswith("```"):
-        raw = raw[raw.index("\n") + 1:] if "\n" in raw else raw[3:]
+        raw = raw[raw.index("\n") + 1 :] if "\n" in raw else raw[3:]
     if raw.endswith("```"):
-        raw = raw[:raw.rfind("```")].strip()
+        raw = raw[: raw.rfind("```")].strip()
     return raw
 
 
+def _first_json_value_start(s: str) -> int:
+    """Index of first ``{`` or ``[`` that may start a JSON value, or -1."""
+    i_obj = s.find("{")
+    i_arr = s.find("[")
+    candidates = [i for i in (i_obj, i_arr) if i >= 0]
+    return min(candidates) if candidates else -1
+
+
 def _parse_json(raw: str, step: str = "") -> dict | list:
+    """Parse JSON from model output: optional markdown fences, leading prose, trailing junk."""
     stripped = _strip_fences(raw)
+    decoder = json.JSONDecoder()
+
     try:
         return json.loads(stripped)
     except json.JSONDecodeError:
+        pass
+
+    start = stripped.find("{")
+    if start >= 0:
         try:
-            decoder = json.JSONDecoder()
-            result, _ = decoder.raw_decode(stripped)
+            result, _ = decoder.raw_decode(stripped, start)
             return result
-        except json.JSONDecodeError as e:
-            label = step or "JSON"
-            print(f"paperlint [{label}] JSONDecodeError: {e}", file=sys.stderr)
-            preview = stripped[:800]
-            print(f"paperlint [{label}] raw: {repr(preview)}", file=sys.stderr)
-            raise
+        except json.JSONDecodeError:
+            pass
+
+    try:
+        result, _ = decoder.raw_decode(stripped)
+        return result
+    except json.JSONDecodeError as e:
+        label = step or "JSON"
+        print(f"paperlint [{label}] JSONDecodeError: {e}", file=sys.stderr)
+        preview = stripped[:800]
+        print(f"paperlint [{label}] raw: {repr(preview)}", file=sys.stderr)
+        raise
 
 
 # ---------------------------------------------------------------------------
 # Pipeline steps
 # ---------------------------------------------------------------------------
+
 
 def step_metadata(paper_path: Path, client: openai.OpenAI) -> tuple[str, PaperMeta]:
     """Step 0: Extract metadata via Sonnet."""
@@ -223,7 +254,7 @@ def step_metadata(paper_path: Path, client: openai.OpenAI) -> tuple[str, PaperMe
         '{"title": "...", "authors": ["..."], "audience": "...", '
         '"paper_type": "wording or proposal or directional", '
         '"abstract": "2-3 sentence summary of what this paper proposes."}\n\n'
-        "Return ONLY the JSON."
+        "IMPORTANT: Return ONLY the JSON."
     )
 
     title = "Unknown"
@@ -238,7 +269,9 @@ def step_metadata(paper_path: Path, client: openai.OpenAI) -> tuple[str, PaperMe
                 model=OPENROUTER_SONNET,
                 max_tokens=512,
                 response_format={"type": "json_object"},
-                messages=[{"role": "user", "content": f"{meta_prompt}\n\n{clean_text}"}],
+                messages=[
+                    {"role": "user", "content": f"{meta_prompt}\n\n{clean_text}"}
+                ],
             )
             raw = _extract_text(response).strip()
             if not raw:
@@ -259,8 +292,12 @@ def step_metadata(paper_path: Path, client: openai.OpenAI) -> tuple[str, PaperMe
                 time.sleep(2)
 
     meta = PaperMeta(
-        paper=paper_number, title=title, authors=authors,
-        target_group=audience, paper_type=paper_type, abstract=abstract,
+        paper=paper_number,
+        title=title,
+        authors=authors,
+        target_group=audience,
+        paper_type=paper_type,
+        abstract=abstract,
         source_file=str(paper_path),
         run_timestamp=datetime.now(timezone.utc).isoformat(),
         model=OPENROUTER_MODEL,
@@ -272,7 +309,9 @@ def step_metadata(paper_path: Path, client: openai.OpenAI) -> tuple[str, PaperMe
     return clean_text, meta
 
 
-def step_discovery(client: openai.OpenAI, clean_text: str, meta: PaperMeta) -> list[Finding]:
+def step_discovery(
+    client: openai.OpenAI, clean_text: str, meta: PaperMeta
+) -> list[Finding]:
     """Step 1: Discovery — find defects, output structured JSON with evidence."""
     print("\n--- Step 1: Discovery (JSON mode + thinking) ---")
 
@@ -283,7 +322,7 @@ def step_discovery(client: openai.OpenAI, clean_text: str, meta: PaperMeta) -> l
         "\n\n## Output Format\n\n"
         "Return ONLY a JSON object with this structure:\n"
         '{"findings": [\n'
-        '  {\n'
+        "  {\n"
         '    "number": 1,\n'
         '    "title": "short title",\n'
         '    "category": "rubric code e.g. 1.2",\n'
@@ -292,31 +331,35 @@ def step_discovery(client: openai.OpenAI, clean_text: str, meta: PaperMeta) -> l
         '    "axiom": "ground truth source",\n'
         '    "evidence": [\n'
         '      {"location": "§X.Y or section name", "quote": "exact text from the paper"}\n'
-        '    ]\n'
-        '  }\n'
-        ']}\n\n'
+        "    ]\n"
+        "  }\n"
+        "]}\n\n"
         "Each evidence quote must be EXACT text from the paper — copy precisely, "
         "character for character. Do not paraphrase. Do not combine multiple passages "
         "into one quote. Use separate evidence entries for each passage.\n\n"
-        "If no findings, return {\"findings\": []}.\n"
+        'If no findings, return {"findings": []}.\n'
         "Return ONLY the JSON."
     )
 
-    system_prompt = f"{skill_text}\n\n---\n\n# Evaluation Rubric\n\n{rubric_text}{json_schema}"
+    system_prompt = (
+        f"{skill_text}\n\n---\n\n# Evaluation Rubric\n\n{rubric_text}{json_schema}"
+    )
 
     user_content = (
-        f"<paper title=\"{meta.paper} — {meta.title}\" "
-        f"target_group=\"{meta.target_group}\" "
+        f'<paper title="{meta.paper} — {meta.title}" '
+        f'target_group="{meta.target_group}" '
         f"authors=\"{', '.join(meta.authors)}\">\n"
         f"{clean_text}\n"
         f"</paper>\n\n"
-        f"Analyze this paper for objective defects per the rubric."
+        f"Analyze this paper for objective defects per the rubric.\n\n"
+        f"IMPORTANT: Return ONLY a valid JSON object. No markdown. No explanation."
     )
 
     parsed = None
     for attempt in range(3):
         response = _call_with_retry(
-            client, "Discovery",
+            client,
+            "Discovery",
             model=OPENROUTER_MODEL,
             max_tokens=MAX_TOKENS["discovery"],
             response_format={"type": "json_object"},
@@ -340,15 +383,8 @@ def step_discovery(client: openai.OpenAI, clean_text: str, meta: PaperMeta) -> l
             break
         except json.JSONDecodeError:
             if attempt < 2:
-                print(f"  Retrying Discovery (JSON parse failed, attempt {attempt + 2})...")
-                user_content = (
-                    f"<paper title=\"{meta.paper} — {meta.title}\" "
-                    f"target_group=\"{meta.target_group}\" "
-                    f"authors=\"{', '.join(meta.authors)}\">\n"
-                    f"{clean_text}\n"
-                    f"</paper>\n\n"
-                    f"Analyze this paper for objective defects per the rubric.\n\n"
-                    f"IMPORTANT: Return ONLY a valid JSON object. No markdown. No explanation."
+                print(
+                    f"  Retrying Discovery (JSON parse failed, attempt {attempt + 2})..."
                 )
             else:
                 raise
@@ -361,15 +397,17 @@ def step_discovery(client: openai.OpenAI, clean_text: str, meta: PaperMeta) -> l
             Evidence(location=e.get("location", ""), quote=e.get("quote", ""))
             for e in rf.get("evidence", [])
         ]
-        findings.append(Finding(
-            number=rf.get("number", 0),
-            title=rf.get("title", ""),
-            category=rf.get("category", ""),
-            defect=rf.get("defect", ""),
-            correction=rf.get("correction", ""),
-            axiom=rf.get("axiom", ""),
-            evidence=evidence,
-        ))
+        findings.append(
+            Finding(
+                number=rf.get("number", 0),
+                title=rf.get("title", ""),
+                category=rf.get("category", ""),
+                defect=rf.get("defect", ""),
+                correction=rf.get("correction", ""),
+                axiom=rf.get("axiom", ""),
+                evidence=evidence,
+            )
+        )
 
     print(f"  Findings: {len(findings)}")
     for f in findings:
@@ -405,7 +443,7 @@ def step_verify_quotes(findings: list[Finding], source_text: str) -> list[Findin
                     status = "MISS"
             if not ev.verified:
                 all_verified = False
-            print(f"    #{f.number} [{status}] \"{ev.quote[:60]}\"")
+            print(f'    #{f.number} [{status}] "{ev.quote[:60]}"')
 
         if all(ev.verified for ev in f.evidence):
             verified_findings.append(f)
@@ -459,8 +497,9 @@ def _format_findings_for_eval(meta: PaperMeta, passed: list[GatedFinding]) -> st
     return "\n".join(lines)
 
 
-def step_gate(client: openai.OpenAI, paper_text: str,
-              meta: PaperMeta, findings: list[Finding]) -> list[GatedFinding]:
+def step_gate(
+    client: openai.OpenAI, paper_text: str, meta: PaperMeta, findings: list[Finding]
+) -> list[GatedFinding]:
     """Step 2: Verification Gate."""
     print("\n--- Step 2: Gate ---")
 
@@ -472,7 +511,7 @@ def step_gate(client: openai.OpenAI, paper_text: str,
     findings_text = _format_findings_for_gate(findings)
 
     user_content = (
-        f"<paper title=\"{meta.paper} — {meta.title}\">\n"
+        f'<paper title="{meta.paper} — {meta.title}">\n'
         f"{paper_text}\n"
         f"</paper>\n\n"
         f"{findings_text}"
@@ -483,7 +522,7 @@ def step_gate(client: openai.OpenAI, paper_text: str,
         "Return ONLY a JSON object:\n"
         '{"verdicts": [\n'
         '  {"finding_number": 1, "verdict": "PASS", "reason": "...", "judgment": false}\n'
-        ']}\n'
+        "]}\n"
         "verdict must be PASS, REJECT, or REFER.\n"
         "judgment: true if reaching this verdict required judgment beyond mechanical verification, false if purely mechanical.\n"
         "Return ONLY the JSON."
@@ -492,7 +531,8 @@ def step_gate(client: openai.OpenAI, paper_text: str,
     parsed = None
     for attempt in range(3):
         response = _call_with_retry(
-            client, "Gate",
+            client,
+            "Gate",
             model=OPENROUTER_MODEL,
             max_tokens=MAX_TOKENS["gate"],
             response_format={"type": "json_object"},
@@ -532,7 +572,9 @@ def step_gate(client: openai.OpenAI, paper_text: str,
     verdict_map = {v["finding_number"]: v for v in verdicts}
     judgment_rejections = 0
     for f in findings:
-        v = verdict_map.get(f.number, {"verdict": "REFER", "reason": "No verdict returned"})
+        v = verdict_map.get(
+            f.number, {"verdict": "REFER", "reason": "No verdict returned"}
+        )
         verdict = v.get("verdict", "REFER").upper()
         reason = v.get("reason", "")
         used_judgment = v.get("judgment", False)
@@ -540,11 +582,13 @@ def step_gate(client: openai.OpenAI, paper_text: str,
             verdict = "REJECT"
             reason = f"Auto-rejected: gate reported judgment was required. Original: {reason}"
             judgment_rejections += 1
-        gated.append(GatedFinding(
-            finding=f,
-            verdict=verdict,
-            reason=reason,
-        ))
+        gated.append(
+            GatedFinding(
+                finding=f,
+                verdict=verdict,
+                reason=reason,
+            )
+        )
 
     passed = [g for g in gated if g.verdict == "PASS"]
     rejected = [g for g in gated if g.verdict == "REJECT"]
@@ -558,8 +602,7 @@ def step_gate(client: openai.OpenAI, paper_text: str,
     return gated
 
 
-def step_summary_writer(client: openai.OpenAI, meta: PaperMeta,
-                        n_findings: int) -> str:
+def step_summary_writer(client: openai.OpenAI, meta: PaperMeta, n_findings: int) -> str:
     """Step 3: Write the evaluation summary. Findings pass through from Discovery untouched."""
     print("\n--- Step 3: Summary ---")
 
@@ -590,7 +633,8 @@ def step_summary_writer(client: openai.OpenAI, meta: PaperMeta,
     )
 
     response = _call_with_retry(
-        client, "Summary",
+        client,
+        "Summary",
         model=OPENROUTER_SONNET,
         max_tokens=512,
         response_format={"type": "json_object"},
@@ -661,6 +705,7 @@ def fetch_paper(paper_id: str, cache_dir: Path | None = None) -> Path:
 # Main pipeline
 # ---------------------------------------------------------------------------
 
+
 def run_paper_eval(
     paper_ref: str,
     *,
@@ -702,7 +747,8 @@ def run_paper_eval(
     findings_path = paper_output_dir / "1-findings.json"
     findings_path.write_text(
         json.dumps([asdict(f) for f in findings], indent=2, ensure_ascii=False),
-        encoding="utf-8")
+        encoding="utf-8",
+    )
     print(f"  Written: {findings_path}")
 
     # Step 1b: Quote verification
@@ -712,9 +758,20 @@ def run_paper_eval(
     gated = step_gate(client, clean_text, meta, findings)
 
     gate_path = paper_output_dir / "2-gate.json"
-    gate_path.write_text(json.dumps(
-        [{"finding_number": g.finding.number, "verdict": g.verdict, "reason": g.reason}
-         for g in gated], indent=2), encoding="utf-8")
+    gate_path.write_text(
+        json.dumps(
+            [
+                {
+                    "finding_number": g.finding.number,
+                    "verdict": g.verdict,
+                    "reason": g.reason,
+                }
+                for g in gated
+            ],
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     # Step 3: Summary
     passed = [g for g in gated if g.verdict == "PASS"]
@@ -744,13 +801,15 @@ def run_paper_eval(
                 references.append(ref)
                 finding_refs.append(ref_counter)
                 ref_counter += 1
-        output_findings.append({
-            "location": f.evidence[0].location if f.evidence else "",
-            "description": f.defect,
-            "category": f.category,
-            "correction": f.correction,
-            "references": finding_refs,
-        })
+        output_findings.append(
+            {
+                "location": f.evidence[0].location if f.evidence else "",
+                "description": f.defect,
+                "category": f.category,
+                "correction": f.correction,
+                "references": finding_refs,
+            }
+        )
 
     eval_json = {
         "schema_version": SCHEMA_VERSION,
@@ -773,10 +832,14 @@ def run_paper_eval(
     }
 
     json_path = paper_output_dir / "evaluation.json"
-    json_path.write_text(json.dumps(eval_json, indent=2, ensure_ascii=False), encoding="utf-8")
+    json_path.write_text(
+        json.dumps(eval_json, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     flat_path = output_dir / f"{meta.paper}.json"
-    flat_path.write_text(json.dumps(eval_json, indent=2, ensure_ascii=False), encoding="utf-8")
+    flat_path.write_text(
+        json.dumps(eval_json, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     print(f"\n{'=' * 60}")
     print(f"Pipeline complete. Deliverable: {flat_path}")
