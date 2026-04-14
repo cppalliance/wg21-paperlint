@@ -184,6 +184,7 @@ def _strip_fences(raw: str) -> str:
 
 def _parse_json(raw: str, step: str = "") -> dict | list:
     stripped = _strip_fences(raw)
+    decoder = json.JSONDecoder()
     try:
         return json.loads(stripped)
     except json.JSONDecodeError:
