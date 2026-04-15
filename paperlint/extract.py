@@ -174,7 +174,7 @@ class _PaperContentExtractor(HTMLParser):
 
 def extract_html(path: str) -> str:
     """Extract clean text from an HTML paper."""
-    with open(path) as f:
+    with open(path, encoding="utf-8", errors="replace") as f:
         html = f.read()
     extractor = _PaperContentExtractor()
     extractor.feed(html)

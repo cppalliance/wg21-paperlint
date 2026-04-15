@@ -184,19 +184,29 @@ def _strip_fences(raw: str) -> str:
 
 def _parse_json(raw: str, step: str = "") -> dict | list:
     stripped = _strip_fences(raw)
+    decoder = json.JSONDecoder()
     try:
         return json.loads(stripped)
     except json.JSONDecodeError:
+        pass
+
+    start = stripped.find("{")
+    if start >= 0:
         try:
-            decoder = json.JSONDecoder()
-            result, _ = decoder.raw_decode(stripped)
+            result, _ = decoder.raw_decode(stripped, start)
             return result
-        except json.JSONDecodeError as e:
-            label = step or "JSON"
-            print(f"paperlint [{label}] JSONDecodeError: {e}", file=sys.stderr)
-            preview = stripped[:800]
-            print(f"paperlint [{label}] raw: {repr(preview)}", file=sys.stderr)
-            raise
+        except json.JSONDecodeError:
+            pass
+
+    try:
+        result, _ = decoder.raw_decode(stripped)
+        return result
+    except json.JSONDecodeError as e:
+        label = step or "JSON"
+        print(f"paperlint [{label}] JSONDecodeError: {e}", file=sys.stderr)
+        preview = stripped[:800]
+        print(f"paperlint [{label}] raw: {repr(preview)}", file=sys.stderr)
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -310,7 +320,8 @@ def step_discovery(client: openai.OpenAI, clean_text: str, meta: PaperMeta) -> l
         f"authors=\"{', '.join(meta.authors)}\">\n"
         f"{clean_text}\n"
         f"</paper>\n\n"
-        f"Analyze this paper for objective defects per the rubric."
+        f"Analyze this paper for objective defects per the rubric.\n\n"
+        f"IMPORTANT: Return ONLY a valid JSON object. No markdown. No explanation."
     )
 
     parsed = None
@@ -340,15 +351,8 @@ def step_discovery(client: openai.OpenAI, clean_text: str, meta: PaperMeta) -> l
             break
         except json.JSONDecodeError:
             if attempt < 2:
-                print(f"  Retrying Discovery (JSON parse failed, attempt {attempt + 2})...")
-                user_content = (
-                    f"<paper title=\"{meta.paper} — {meta.title}\" "
-                    f"target_group=\"{meta.target_group}\" "
-                    f"authors=\"{', '.join(meta.authors)}\">\n"
-                    f"{clean_text}\n"
-                    f"</paper>\n\n"
-                    f"Analyze this paper for objective defects per the rubric.\n\n"
-                    f"IMPORTANT: Return ONLY a valid JSON object. No markdown. No explanation."
+                print(
+                    f"  Retrying Discovery (JSON parse failed, attempt {attempt + 2})..."
                 )
             else:
                 raise
