@@ -861,7 +861,7 @@ def run_paper_eval(
     _write_eval_json(eval_json, output_dir, paper_id)
 
     print(f"\n{'=' * 60}")
-    print(f"Pipeline complete. Deliverable: {flat_path}")
+    print(f"Pipeline complete. Deliverable: {output_dir / f'{paper_id}.json'}")
     print(f"{'=' * 60}")
 
     return eval_json
