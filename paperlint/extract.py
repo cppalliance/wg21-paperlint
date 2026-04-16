@@ -202,6 +202,7 @@ def extract_pdf(path: str) -> str:
     doc = pymupdf.open(path)
     text = "\n".join(page.get_text() for page in doc)
     doc.close()
+    text = re.sub(r'(\w)-\n(\w)', r'\1-\2', text)
     return html_mod.unescape(text)
 
 

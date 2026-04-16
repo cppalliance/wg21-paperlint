@@ -12,6 +12,7 @@ dependencies = [
     "beautifulsoup4",
     "pymupdf",
     "requests",
+    "docling",
 ]
 
 [project.scripts]
