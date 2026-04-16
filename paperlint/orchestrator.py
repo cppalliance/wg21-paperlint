@@ -407,7 +407,7 @@ def step_verify_quotes(findings: list[Finding], source_text: str) -> list[Findin
                 all_verified = False
             print(f"    #{f.number} [{status}] \"{ev.quote[:60]}\"")
 
-        if all(ev.verified for ev in f.evidence):
+        if f.evidence and all(ev.verified for ev in f.evidence):
             verified_findings.append(f)
         else:
             unverified = sum(1 for ev in f.evidence if not ev.verified)
@@ -774,6 +774,7 @@ def run_paper_eval(
     # Step 1: Discovery → Quote verification → Gate
     try:
         findings = step_discovery(client, clean_text, meta)
+        raw_discovered = len(findings)
 
         findings_path = paper_output_dir / "1-findings.json"
         findings_path.write_text(
@@ -849,7 +850,7 @@ def run_paper_eval(
         "paper_type": meta.paper_type,
         "generated": meta.run_timestamp,
         "model": meta.model,
-        "findings_discovered": len(findings),
+        "findings_discovered": raw_discovered,
         "findings_passed": len(passed),
         "findings_rejected": len([g for g in gated if g.verdict == "REJECT"]),
         "summary": summary,
