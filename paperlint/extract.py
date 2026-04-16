@@ -16,6 +16,7 @@ used for the metadata step.
 
 from __future__ import annotations
 
+import html as html_mod
 import re
 from html.parser import HTMLParser
 
@@ -194,14 +195,14 @@ def extract_pdf(path: str) -> str:
         result = converter.convert(path)
         md = result.document.export_to_markdown()
         if md and len(md.strip()) > 100:
-            return md
+            return html_mod.unescape(md)
     except Exception:
         pass
     import pymupdf
     doc = pymupdf.open(path)
     text = "\n".join(page.get_text() for page in doc)
     doc.close()
-    return text
+    return html_mod.unescape(text)
 
 
 def extract_text(path: str) -> str:
