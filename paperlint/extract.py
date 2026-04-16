@@ -175,6 +175,14 @@ class _PaperContentExtractor(HTMLParser):
 
 _DIFF_DEL_RE = re.compile(r'\u00ab-.*?-\u00bb', re.DOTALL)
 _DIFF_INS_RE = re.compile(r'\u00ab\+(.*?)\+\u00bb', re.DOTALL)
+_TOC_RE = re.compile(
+    r'(?:^|\n)'
+    r'(?:#{1,3}\s*)?'
+    r'(?:Table of )?Contents\s*\n'
+    r'.*?'
+    r'(?=\n#{1,3}\s)',
+    re.DOTALL | re.IGNORECASE,
+)
 
 
 def _resolve_diff_markers(text: str) -> str:
@@ -219,6 +227,11 @@ def extract_pdf(path: str) -> str:
     return html_mod.unescape(text)
 
 
+def _strip_toc(text: str) -> str:
+    """Remove Table of Contents sections that produce phantom findings."""
+    return _TOC_RE.sub('\n', text)
+
+
 def extract_text(path: str) -> str:
     """Extract clean text from a paper (HTML or PDF).
 
@@ -226,5 +239,7 @@ def extract_text(path: str) -> str:
     metadata extraction. Discovery gets the raw source instead.
     """
     if path.lower().endswith(".pdf"):
-        return extract_pdf(path)
-    return extract_html(path)
+        text = extract_pdf(path)
+    else:
+        text = extract_html(path)
+    return _strip_toc(text)
