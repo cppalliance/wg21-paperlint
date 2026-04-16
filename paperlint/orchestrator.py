@@ -231,7 +231,7 @@ def step_metadata(paper_path: Path, client: openai.OpenAI) -> tuple[str, PaperMe
     meta_prompt = (
         "Read this WG21 paper and return ONLY a JSON object with these fields:\n\n"
         '{"title": "...", "authors": ["..."], "audience": "...", '
-        '"paper_type": "wording or proposal or directional"}\n\n'
+        '"paper_type": "wording or proposal or directional or white-paper or informational"}\n\n'
         "Return ONLY the JSON."
     )
 
