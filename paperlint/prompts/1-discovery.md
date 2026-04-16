@@ -80,6 +80,8 @@ These are common patterns that look like defects but are not. Do not report them
 - **Standardese wording placement.** Whether a behavioral requirement belongs in Effects, Returns, or Remarks is an editorial convention. Both placements may be valid.
 - **Citation specificity.** A reference to the C++ working draft that covers multiple concepts is less specific than separate references, but it is not wrong.
 - **Example design choices.** An example that demonstrates a failure does not need a success branch. An example that omits error handling is simplified, not broken.
+- **Counter-examples.** A code sample that deliberately shows incorrect or failing behavior is not a mismatch with the surrounding prose — it is the point. Do not fire on the gap between a counter-example and a general-case description of the mechanism.
+- **C++ semantic equivalences.** `if (p)` is idiomatic shorthand for `if (p != nullptr)`. `!container.empty()` is equivalent to `container.size() > 0`. Do not report textual differences between semantically identical C++ expressions.
 - **Reserved identifiers in proposals.** A standards proposal that uses `__double_underscore` names is proposing implementation-level features. The reserved prefix is intentional.
 - **WG21 editorial placeholders.** `20XXXXL`, `?.?`, `YYYYMML` in feature-test macros or cross-references are conventions, not errors.
 - **Design decisions.** If the author chose one approach over another and you think the other is better, that is not a finding. The paper's design is the author's jurisdiction.

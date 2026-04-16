@@ -56,6 +56,8 @@ REJECT findings in these categories — they are not verified defects:
 - **Standardese wording placement.** Whether a requirement belongs in Effects, Returns, or Remarks is editorial discretion.
 - **Citation specificity.** A single reference to the C++ working draft covering multiple concepts is less specific but not wrong.
 - **Example design choices.** An example demonstrating a failure does not need a success branch. Omitted error handling is simplification, not a defect.
+- **Counter-examples.** A code sample that deliberately shows incorrect or failing behavior is not a mismatch with surrounding prose — it is the point. Do not confirm findings based on the gap between a counter-example and a general-case description.
+- **C++ semantic equivalences.** `if (p)` is idiomatic shorthand for `if (p != nullptr)`. `!container.empty()` is equivalent to `container.size() > 0`. Textual differences between semantically identical C++ expressions are not defects. REJECT.
 - **Reserved identifiers in proposals.** A standards proposal using `__double_underscore` names is proposing implementation-level features. The reserved prefix is intentional.
 - **WG21 editorial placeholders.** `20XXXXL`, `?.?`, `YYYYMML` in feature-test macros or cross-references are conventions, not errors.
 - **Design decisions.** If the author chose one approach and the finding says another approach is better, that is not a defect.
