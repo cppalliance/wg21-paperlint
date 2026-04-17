@@ -28,6 +28,7 @@ import openai
 
 from paperlint.credentials import ensure_api_keys, resolve_openrouter_base_url
 from paperlint.extract import extract_text
+from paperlint.suppress import step_suppress_known_fps
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -821,6 +822,13 @@ def run_paper_eval(
         eval_json["summary"] = "This paper could not be fully evaluated due to an analysis issue."
         _write_eval_json(eval_json, output_dir, paper_id)
         return eval_json
+
+    # Step 2b: Known-FP suppression (post-gate filter)
+    gated, suppressed = step_suppress_known_fps(gated, meta)
+    suppressed_path = paper_output_dir / "2c-suppressed.json"
+    suppressed_path.write_text(
+        json.dumps(suppressed, indent=2, ensure_ascii=False),
+        encoding="utf-8")
 
     # Step 3: Summary
     passed = [g for g in gated if g.verdict == "PASS"]
