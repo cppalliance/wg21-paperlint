@@ -400,6 +400,23 @@ def step_verify_quotes(findings: list[Finding], source_text: str) -> list[Findin
                 norm_idx = source_norm.find(norm_quote)
                 if norm_idx >= 0:
                     ev.verified = True
+                    # Map normalized position back to original text
+                    char_count = 0
+                    orig_start = 0
+                    for i, ch in enumerate(source_text):
+                        if char_count == norm_idx:
+                            orig_start = i
+                            break
+                        if not (ch in ' \t\n\r' and (i == 0 or source_text[i-1] in ' \t\n\r')):
+                            char_count += 1
+                    ev.extracted_char_start = orig_start
+                    ev.extracted_char_end = min(orig_start + len(ev.quote) + 50, len(source_text))
+                    # Tighten end by searching for the quote's last word near the estimated end
+                    last_words = ev.quote.split()[-2:] if len(ev.quote.split()) >= 2 else ev.quote.split()
+                    tail = " ".join(last_words)
+                    tail_idx = source_text.find(tail, orig_start)
+                    if tail_idx >= 0:
+                        ev.extracted_char_end = tail_idx + len(tail)
                     status = "NORM"
                 else:
                     ev.verified = False

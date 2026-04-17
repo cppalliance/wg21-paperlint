@@ -26,6 +26,34 @@ from pathlib import Path
 from paperlint.orchestrator import run_paper_eval, git_sha, prompt_hash, SCHEMA_VERSION
 
 
+def _persist_mailing_index(papers: list[dict], index_path: Path) -> list[dict]:
+    """Merge-persist a mailing index: keeps existing entries with their
+    original added dates, appends new papers with current timestamp."""
+    existing_by_id = {}
+    if index_path.exists():
+        for entry in json.loads(index_path.read_text()):
+            existing_by_id[entry["paper_id"]] = entry
+
+    now = datetime.now(timezone.utc).isoformat()
+    merged = []
+    new_count = 0
+    for p in papers:
+        if p["paper_id"] in existing_by_id:
+            merged.append(existing_by_id[p["paper_id"]])
+        else:
+            p["added"] = now
+            merged.append(p)
+            new_count += 1
+    merged.sort(key=lambda e: e["paper_id"])
+
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    index_path.write_text(
+        json.dumps(merged, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    print(f"Mailing index: {index_path} ({len(merged)} papers, {new_count} new)")
+    return merged
+
+
 def _eval_one_paper(paper_ref: str, output_dir: Path, source_url: str = "",
                     mailing_meta: dict | None = None) -> dict:
     try:
@@ -115,28 +143,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 1
 
     # Persist mailing index as ground-truth record
-    mailings_dir = output_dir.parent / "mailings"
-    mailings_dir.mkdir(parents=True, exist_ok=True)
-    index_path = mailings_dir / f"{mailing_id}.json"
-
-    existing_by_id = {}
-    if index_path.exists():
-        for entry in json.loads(index_path.read_text()):
-            existing_by_id[entry["paper_id"]] = entry
-
-    now = datetime.now(timezone.utc).isoformat()
-    merged = []
-    for p in papers:
-        if p["paper_id"] in existing_by_id:
-            merged.append(existing_by_id[p["paper_id"]])
-        else:
-            p["added"] = now
-            merged.append(p)
-    merged.sort(key=lambda e: e["paper_id"])
-    index_path.write_text(
-        json.dumps(merged, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-    print(f"Mailing index: {index_path} ({len(merged)} papers)")
+    index_path = output_dir.parent / "mailings" / f"{mailing_id}.json"
+    merged = _persist_mailing_index(papers, index_path)
 
     meta_by_id = {p["paper_id"]: p for p in merged}
 
@@ -205,29 +213,7 @@ def cmd_mailing(args: argparse.Namespace) -> int:
         print(f"No papers found for mailing {mailing_id}", file=sys.stderr)
         return 1
 
-    existing_by_id = {}
-    if output.exists():
-        for entry in json.loads(output.read_text()):
-            existing_by_id[entry["paper_id"]] = entry
-
-    now = datetime.now(timezone.utc).isoformat()
-    merged = []
-    new_count = 0
-    for p in papers:
-        if p["paper_id"] in existing_by_id:
-            merged.append(existing_by_id[p["paper_id"]])
-        else:
-            p["added"] = now
-            merged.append(p)
-            new_count += 1
-    merged.sort(key=lambda e: e["paper_id"])
-
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(
-        json.dumps(merged, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-
-    print(f"Written {output}: {len(merged)} papers ({new_count} new, {len(merged) - new_count} existing)")
+    _persist_mailing_index(papers, output)
     return 0
 
 

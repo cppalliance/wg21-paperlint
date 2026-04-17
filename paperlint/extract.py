@@ -222,9 +222,8 @@ def extract_pdf(path: str) -> str:
         print(f"WARNING: docling failed for {path}, falling back to pymupdf: {e}",
               file=sys.stderr)
     import pymupdf
-    doc = pymupdf.open(path)
-    text = "\n".join(page.get_text() for page in doc)
-    doc.close()
+    with pymupdf.open(path) as doc:
+        text = "\n".join(page.get_text() for page in doc)
     text = re.sub(r'(\w)-\n(\w)', r'\1-\2', text)
     return html_mod.unescape(text)
 
