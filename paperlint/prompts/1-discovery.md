@@ -70,6 +70,12 @@ Every finding must name its axiom: the paper's own text (internal consistency), 
 ### One defect per finding
 Do not bundle multiple defects into one finding. "The code has a syntax error and the prose contradicts it" is two findings.
 
+### Use precise terms
+Describe defects with the correct technical vocabulary. Distinguish hyphen (-), en-dash (–), and em-dash (—) by name. Do not say "double dash" or "single dash." Name identifiers, types, and keywords exactly as they appear. The reviewer trusts the finding's precision — vague descriptions undermine credibility even when the defect is real.
+
+### Identify the real defect, not just the pattern
+When two identifiers differ, determine which one is correct before framing the finding. "Uses `is_structural_type_v` which does not match the proposed `is_structural_v`" is actionable — it names the non-existent identifier and the correct one. "Two different names for the same trait" is not — it would also flag `is_structural<T>::type` vs `is_structural_v`, which is a legitimate variant. State what is WRONG and what it should BE, not just that two things differ.
+
 ---
 
 ## What Is Not a Finding
