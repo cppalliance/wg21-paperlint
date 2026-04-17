@@ -63,6 +63,7 @@ REJECT findings in these categories — they are not verified defects:
 - **WG21 namespace qualification dropping.** After a paper establishes a namespace in prose, code examples that drop the prefix are following WG21 convention. Not an inconsistency. REJECT.
 - **Standardese elision conventions.** Standards wording abstracts over mechanical operations (`cat(Result)` where Result is a tuple implies unpacking). Not a missing step. REJECT.
 - **Exposition-style concept notation.** Exposition-only notation in prose paired with actual concept definitions in code is intentional — the textual mismatch is by design. REJECT.
+- **Exposition-only identifiers.** When a paper marks an identifier as "exposition only," the absence of a concrete declaration is intentional. REJECT.
 - **Design decisions.** If the author chose one approach and the finding says another approach is better, that is not a defect.
 
 If you cannot mechanically confirm the defect: **REJECT.**

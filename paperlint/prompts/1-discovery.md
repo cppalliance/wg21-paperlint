@@ -87,6 +87,7 @@ These are common patterns that look like defects but are not. Do not report them
 - **WG21 namespace qualification dropping.** After a paper establishes a namespace in prose (`simd::chunked_invoke`, `std::whatever`), subsequent code examples routinely drop the prefix. This is a deliberate WG21 convention for noise reduction, not an inconsistency.
 - **Standardese elision conventions.** Standards wording abstracts over mechanical operations the implementer fills in. When wording says `cat(Result)` and Result is a defined tuple, the unpacking is implicit by specification convention — not a missing step.
 - **Exposition-style concept notation.** When no actual C++ concept exists (e.g., no `std::is_complex_v`), authors use exposition-only notation in prose and then define the real concept in code. The textual mismatch between exposition and definition is intentional, not an inconsistency.
+- **Exposition-only identifiers.** When a paper marks an identifier as "exposition only," it describes general behavior without requiring an explicit definition. Do not flag the absence of a concrete declaration for an exposition-only name.
 - **Design decisions.** If the author chose one approach over another and you think the other is better, that is not a finding. The paper's design is the author's jurisdiction.
 
 ## What You Do Not Do
