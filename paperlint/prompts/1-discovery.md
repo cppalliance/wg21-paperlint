@@ -72,15 +72,28 @@ Apply the self-test before recording any finding:
 
 ### Step 4: Record each finding
 
-For every gap that passes the self-test, produce a finding using the JSON schema supplied by the pipeline. Each finding includes:
+For every gap that passes the self-test, produce a finding. Your output has two top-level parts: a `references` collection of cited content from the paper, and a `findings` array.
+
+Each finding includes:
 
 - **number** — sequential
 - **question** — Q1 through Q8, or U for the universal constraint
 - **title** — short description
 - **requirement** — the SD-4 source text the paper fails, quoted verbatim from `rubric.md`
 - **gap** — what the paper does not do, one sentence
-- **present** — what the paper does contain related to this question (quoted excerpts from the paper with locations, or the assertion "no treatment found after thorough search")
+- **present_summary** — prose description of what was found related to this question, or "no treatment found after thorough search" when the finding is pure absence
+- **references** — array of reference IDs (e.g., `["r1", "r3"]`) from the `references` collection that this finding cites; omit or empty array when the finding is pure absence
 - **would_pass** — what a passing treatment would include, one sentence
+
+The `references` collection (top-level, alongside `findings`) holds quoted content with location:
+
+- **id** — short identifier (`r1`, `r2`, …)
+- **location** — section number, heading, paragraph
+- **text** — exact text from the paper, character-for-character
+
+The pipeline resolves each reference's `text` to character offsets in `paper.md` after you produce your output. You do not need to count characters.
+
+Most SD-4 findings will be pure absence — the paper does not address a question at all. These findings have no references. Some findings cite weak or partial treatment that exists but does not meet the requirement; those findings list the relevant reference IDs. Same content cited by multiple findings (e.g., a weak motivating example relevant to both Q1 and Q3) appears once in the `references` collection and is referenced by both findings.
 
 ---
 

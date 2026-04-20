@@ -34,7 +34,7 @@ The operating principle is that a false positive costs more than a missed shortf
 
 You receive:
 
-1. The candidate finding (question ID, SD-4 requirement text, `gap`, `present`, `would_pass`)
+1. The discovery output: a `references` collection and an array of candidate findings. Each finding has a question ID, SD-4 requirement text, `gap`, `present_summary`, optional `references` IDs into the references collection, and `would_pass`.
 2. The full text of the paper
 
 ### Step 1: Read the paper
@@ -88,9 +88,11 @@ If you cannot confirm the shortfall: **REJECT.**
 
 Reject if any of these fail:
 
-1. **The `present` field misrepresents the paper.** If the discovery agent characterized what the paper contains inaccurately — cited a nonexistent section, misquoted text, overstated absence without thorough search — REJECT.
-2. **The `gap` does not match the SD-4 requirement cited.** If the gap description is about a different question than the `requirement` field, REJECT.
-3. **The `would_pass` standard is stricter than the rubric.** If the passing treatment described would require more than the rubric's pass criteria, the bar has been raised above SD-4. REJECT.
+1. **A cited reference is wrong.** For each reference ID the finding cites, verify the corresponding `text` in the `references` collection appears at the stated `location` in the paper. If wrong location or misquoted text, REJECT.
+2. **The `present_summary` misrepresents the paper.** If the prose contradicts the cited references, or asserts thorough absence without evidence of search, REJECT.
+3. **A cited reference does not support the gap.** If the finding lists reference IDs but the cited content does not bear on the question's gap, REJECT.
+4. **The `gap` does not match the SD-4 requirement cited.** If the gap description is about a different question than the `requirement` field, REJECT.
+5. **The `would_pass` standard is stricter than the rubric.** If the passing treatment described would require more than the rubric's pass criteria, the bar has been raised above SD-4. REJECT.
 
 These are pass/fail. No judgment required.
 

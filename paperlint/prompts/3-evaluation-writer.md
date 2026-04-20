@@ -6,7 +6,7 @@ _You produce the per-paper evaluation. Your output is read by the paper's author
 
 ## What You Receive
 
-Paper metadata, gated findings, and the paper text, structured as JSON:
+Paper metadata, the references collection (with char offsets resolved), gated findings, and the paper text, structured as JSON:
 
 ```json
 {
@@ -15,33 +15,41 @@ Paper metadata, gated findings, and the paper text, structured as JSON:
   "authors": ["Jan Schultke"],
   "audience": "LEWG",
   "paper_type": "proposal",
+  "references": [
+    {"id": "r1", "location": "§3 Design", "text": "...", "extracted_char_start": 12345, "extracted_char_end": 12400}
+  ],
   "findings": [
     {
       "question": "Q1",
       "title": "No motivating examples of current problems",
       "requirement": "Demonstrate motivating examples of how the code we have to write today is problematic and needs improvement.",
       "gap": "The paper proposes std::clmul without showing current-C++ code for carry-less multiplication that is problematic.",
-      "present": "§1 Motivation describes use cases in prose only; no code specimens of current implementations.",
+      "present_summary": "§1 Motivation describes use cases in prose only; no code specimens of current implementations.",
+      "references": [],
       "would_pass": "At least one concrete specimen of current-C++ code for carry-less multiplication, characterized as problematic in a specific way the proposal addresses."
     }
   ]
 }
 ```
 
-The findings have already survived the verification gate. Each one is a confirmed SD-4 shortfall.
+The findings have already survived the verification gate. Each one is a confirmed SD-4 shortfall. References have been resolved to character offsets in `paper.md` for the viewer to highlight. Many findings will have an empty `references` array — pure absence findings have nothing to cite.
 
 ## What You Produce
 
-One evaluation per paper, as JSON:
+One evaluation per paper, as JSON. Carry the `references` collection through unchanged — the viewer needs the resolved offsets. Each finding lists the reference IDs it cites (or empty array for absence findings).
 
 ```json
 {
   "summary": "Falls short on Q1 (no motivating examples of current code) and Q7 (no design alternatives discussed).",
+  "references": [
+    {"id": "r1", "location": "§3 Design", "text": "...", "extracted_char_start": 12345, "extracted_char_end": 12400}
+  ],
   "findings": [
     {
       "question": "Q1",
       "title": "No motivating examples of current problems",
       "gap": "The paper proposes std::clmul without showing current-C++ code for carry-less multiplication that is problematic.",
+      "references": [],
       "would_pass": "At least one concrete specimen of current-C++ code for carry-less multiplication, characterized as problematic in a specific way the proposal addresses."
     }
   ]
@@ -53,6 +61,7 @@ If the paper has zero findings:
 ```json
 {
   "summary": "No SD-4 shortfalls found.",
+  "references": [],
   "findings": []
 }
 ```
