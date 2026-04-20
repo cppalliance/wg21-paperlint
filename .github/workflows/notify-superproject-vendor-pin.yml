@@ -1,0 +1,43 @@
+# On release, asks the configured downstream superproject to pin this repo to the release tag.
+#
+# Configure on this repository (Settings → Secrets and variables → Actions):
+#   Secret:  SUPERPROJECT_DISPATCH_TOKEN — classic PAT with "workflow" scope, or fine-grained PAT with
+#            Actions: Read and write on the downstream repository only (enough to trigger workflow_dispatch).
+#   Variables: SUPERPROJECT_REPO (owner/name), SUPERPROJECT_WORKFLOW (e.g. bump-vendor-submodules.yml),
+#              SUPERPROJECT_TARGET_REF (branch that contains that workflow, e.g. develop).
+
+name: Notify superproject vendor pin
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Dispatch downstream workflow
+        env:
+          GH_TOKEN: ${{ secrets.SUPERPROJECT_DISPATCH_TOKEN }}
+          SUPERPROJECT_REPO: ${{ vars.SUPERPROJECT_REPO }}
+          SUPERPROJECT_WORKFLOW: ${{ vars.SUPERPROJECT_WORKFLOW }}
+          SUPERPROJECT_TARGET_REF: ${{ vars.SUPERPROJECT_TARGET_REF }}
+          VENDOR_REF: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SUPERPROJECT_REPO:-}" || -z "${SUPERPROJECT_WORKFLOW:-}" || -z "${SUPERPROJECT_TARGET_REF:-}" ]]; then
+            echo "error: set repository variables SUPERPROJECT_REPO, SUPERPROJECT_WORKFLOW, SUPERPROJECT_TARGET_REF" >&2
+            exit 1
+          fi
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "error: set secret SUPERPROJECT_DISPATCH_TOKEN" >&2
+            exit 1
+          fi
+          gh workflow run "$SUPERPROJECT_WORKFLOW" \
+            --repo "$SUPERPROJECT_REPO" \
+            --ref "$SUPERPROJECT_TARGET_REF" \
+            -f vendor=paperlint \
+            -f "vendor_ref=$VENDOR_REF"
