@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper is a procedural document reporting poll outcomes. It does not propose any new language or library feature, so Q1 is correctly marked as not applicable."
-  }
-]

@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes new operator() and operator[] overloads for constant_wrapper. The cited evidence from \u00a73.2 shows a code block demonstrating the proposed feature's motivation (current status quo where x[1] is ill-formed). Additionally, \u00a74.1 and \u00a74.2 contain extensive code examples showing the proposed syntax in use (e.g., cw<Callable{}>(0), cw<iota>[cw<1>], etc.), and \u00a77.2 contains the proposed wording with the new API. The code block is verbatim from the paper and demonstrates the feature's context. This satisfies the evidence rule for Q1."
-  }
-]

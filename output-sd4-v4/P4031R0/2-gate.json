@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "REJECT",
-    "reason": "Auto-rejected: gate reported judgment was required. Original: The paper proposes renaming a namespace, not a new user-facing feature with concrete syntax or API. It does not propose a new language or library feature that would have a usage example. The applicability rule for Q1 (proposing a feature) is not clearly met."
-  }
-]

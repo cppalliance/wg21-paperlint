@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes a new language feature (constant_assert), and the evidence from \u00a76 shows a code block demonstrating a GCC-based user-code implementation of the proposed feature, which constitutes a concrete example of the proposed syntax/API in use. The quote is verbatim from the paper."
-  }
-]

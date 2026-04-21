@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes changing return types in std::inplace_vector (e.g., try_push_back returning optional<T&> instead of T*, try_append_range returning borrowed_subrange_t<R> instead of borrowed_iterator_t<R>). This is a feature proposal, meeting the applicability rule. The cited code block appears verbatim in \u00a73 and shows the proposed API (try_append_range returning a subrange) in use, satisfying the evidence rule for Q1."
-  }
-]

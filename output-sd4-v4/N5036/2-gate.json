@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes the `atomic do { ... }` syntax for transactional memory. The cited example in \u00a78.8 shows a code block demonstrating the proposed syntax in use: `atomic do { ++i; return i; }`. This satisfies the evidence rule for Q1 (a code block showing the proposed syntax or API in use). The quote appears verbatim in the paper at the indicated location."
-  }
-]

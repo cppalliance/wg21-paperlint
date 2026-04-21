@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes changing the return type of atomic_ref::address from T* to void*. The evidence quote shows the proposed API in a code block with the new type alias and modified function signature. This satisfies the evidence rule for Q1 (a code block showing the proposed syntax or API in use)."
-  }
-]

@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper is a direction/priorities document for C++29. It does not propose any specific language or library feature with concrete syntax or API, so the applicability rule for Q1 is not met."
-  }
-]

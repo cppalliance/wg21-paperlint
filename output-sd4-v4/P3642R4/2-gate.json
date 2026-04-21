@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes std::clmul as a new feature. The evidence quote shows a code block demonstrating the proposed API in use: `bool parity(std::uint32_t x) { return std::clmul(x, -1u) >> 31; }`. This is a concrete usage example of the proposed syntax, satisfying the evidence rule for Q1."
-  }
-]

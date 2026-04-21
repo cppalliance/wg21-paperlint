@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes changes to the std::array specification, and the cited passage in \u00a72 Introduction shows a code block with the proposed structural representation of std::array as 'template<class T, size_t N> struct array { T __array[N]; // ... };'. Additionally, \u00a76.1 [array.overview] paragraph 5 shows the proposed wording with 'T arr[N]; // exposition-only'. The applicability rule is met (the paper proposes a feature), and the evidence rule is met (a code block showing the proposed design in use). The quoted text appears verbatim in the paper."
-  }
-]

@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes compile_assert as a new C++ keyword. Section 4 'Proposed Design' contains multiple code examples showing the proposed syntax in use, including the cited example of compile_assert(p, \"check not null\") inside a function. This satisfies the evidence rule of showing a code block with the proposed syntax/API in use."
-  }
-]

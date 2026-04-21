@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes changing the affine_on algorithm's shape. The evidence shows code blocks with the old syntax `affine_on(sndr, sch)` and the new proposed syntax `affine_on(sndr)`, which constitutes a code block showing the proposed syntax/API in use. The applicability rule is met (the paper proposes a feature), and the quote appears verbatim in \u00a73.1."
-  }
-]

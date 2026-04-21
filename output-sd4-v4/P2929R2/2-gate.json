@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes a new feature (simd::chunked_invoke), the applicability rule is met, and the evidence is a code block showing the proposed API in use. The quote appears verbatim in \u00a74 of the paper."
-  }
-]

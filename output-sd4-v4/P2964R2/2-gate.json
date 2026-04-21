@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes extending std::simd to support user-defined element types. The cited evidence is a code block from \u00a73.1 showing the proposed syntax/API in use with vec<Meters> and vec<Seconds>, demonstrating the proposed feature. The quote appears verbatim in the paper at the stated location."
-  }
-]

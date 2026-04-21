@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes new syntax/API features (^^[[attribute]] reflection expressions, attributes_of, has_attribute, is_attribute metafunctions, etc.). The quoted evidence is a code block from \u00a72.1 showing the proposed API in use \u2014 specifically has_attribute, ^^[[deprecated]], and other reflection features working together. This satisfies the evidence rule for Q1."
-  }
-]

@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes new features (fixing std::bit_cast behavior and/or adding std::bit_cast_zero_padding). The quoted code block from \u00a74.1 [bit.cast] example shows the proposed API in use, demonstrating the proposed syntax for both the modified bit_cast and the new bit_cast_zero_padding function. The quote appears verbatim in the paper's wording section. This satisfies the evidence rule for Q1."
-  }
-]

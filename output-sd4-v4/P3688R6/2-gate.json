@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes new ASCII character utility features (e.g., ascii_is_any, ascii_is_digit, etc.), and the cited evidence is a code block from \u00a73.2 showing the proposed ascii_is_any function being used in context. This satisfies the evidence rule for Q1 \u2014 a code block demonstrating the proposed syntax/API in use."
-  }
-]

@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes new wording for floating-point overflow behavior. The cited evidence is a code block from \u00a76 [expr.pre] replacement wording that shows the proposed semantics in use with concrete examples of what is OK and what is an error. This satisfies the Q1 evidence rule of showing the proposed syntax/API in use via a code block."
-  }
-]

@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "This paper (P4024R0) is a process/guidance document for WG21 about building consensus and converging proposals. It does not propose any new language or library feature with concrete syntax or API. Therefore Q1's applicability rule (the paper proposes a feature) is not met, and the 'not applicable' call is correct."
-  }
-]

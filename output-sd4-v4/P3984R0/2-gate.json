@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes a type-safety profile feature for C++. Section 2.6 contains a code block showing an example of code that must be rejected under the proposed profile, which illustrates the proposed feature's behavior. The quote matches the paper's text verbatim and constitutes a code example demonstrating the proposed syntax/API in use."
-  }
-]

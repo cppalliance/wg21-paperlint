@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper clearly proposes new syntax/API for contracts. The quoted code block appears verbatim in the 'Syntax and semantics' section and shows the proposed spelling in use, satisfying the evidence rule for Q1."
-  }
-]

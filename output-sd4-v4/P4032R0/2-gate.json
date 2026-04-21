@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes a new feature (strong ordering via <=> for meta::info), and the evidence is a code block in \u00a73 showing the proposed syntax in use: using the <=> operator implicitly through std::set{^^Ts...} (which relies on the default comparison). The quote appears verbatim in the 'With <=> (proposed)' column of the motivation section. This satisfies the evidence rule for Q1."
-  }
-]

@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper clearly proposes a new feature (std::ranges::any_view), the applicability rule is met, and the cited evidence is a code block from \u00a72 Abstract showing the proposed API in use. The quote appears verbatim in the paper and satisfies the evidence rule for Q1."
-  }
-]

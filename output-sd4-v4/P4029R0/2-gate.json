@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper is a priority list / policy document from SG14, not a proposal for a new language or library feature. It references other proposals but does not itself propose any concrete syntax or API. The not-applicable call is correct."
-  }
-]

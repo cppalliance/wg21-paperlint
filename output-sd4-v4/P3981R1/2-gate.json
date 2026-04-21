@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes changes to user-facing APIs (return types of try_emplace_back, try_push_back, and exception_ptr_cast), so Q1 is applicable. However, the paper contains no code block showing the proposed API in use by a caller \u2014 only API declarations/signatures in wording sections. The discovery correctly identifies that Q1 is applicable but not answered."
-  }
-]

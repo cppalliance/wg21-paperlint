@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes a new syntax feature (conditional noexcept specifiers in compound requirements). The evidence is a code block in \u00a73 showing the proposed syntax in use: `{ f() } noexcept(noexc);` within a requires-expression. The quote appears verbatim in the 'After' column of the motivational example. This satisfies the evidence rule for Q1."
-  }
-]

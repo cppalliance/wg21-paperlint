@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes new operator() and operator[] overloads for constant_wrapper. The cited code block from \u00a73.2 shows the proposed syntax/API in use (std::cw<...> with subscript operator), which is a code block demonstrating the feature. The applicability rule is met (the paper proposes a language/library feature), and the evidence rule is met (a code block showing the proposed syntax in use). The quote appears verbatim in the paper."
-  }
-]

@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes a language feature (relaxing object lifetime rules for atomic stores) and the quoted code block shows a concrete example illustrating the proposed semantics. The code block appears verbatim in the paper's 'Detailed example' section and demonstrates the syntax/API usage pattern that motivates and illustrates the proposal."
-  }
-]

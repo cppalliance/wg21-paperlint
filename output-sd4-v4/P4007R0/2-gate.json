@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "REJECT",
-    "reason": "Auto-rejected: gate reported judgment was required. Original: The paper is an analysis/position paper recommending procedural actions (ship std::execution without task, defer task to C++29, explore coroutine-native I/O). It does not itself propose a new concrete language or library feature. Code examples shown are from other papers (P4003R0, P2300R10, P3552R3) used for comparison purposes, not as proposals of this paper's own feature."
-  }
-]

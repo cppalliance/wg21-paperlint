@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes the IoAwaitable protocol including run_async and run launch functions, the io_env struct, executor_ref, and related concepts. The evidence shows a code block from \u00a73.4 demonstrating the proposed API syntax in use (run_async with various argument combinations). The applicability rule is met (paper proposes a feature), the quote appears verbatim in the cited section, and it satisfies the evidence rule by showing the proposed syntax/API in use."
-  }
-]

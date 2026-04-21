@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes funnel_shift_left and funnel_shift_right as new library features. Section 5.1 provides a code block showing the proposed API in use: `std::funnel_shift_right(x, y, 17)`. The quote appears verbatim in the paper under \u00a75.1 Hash Mixing. This satisfies the evidence rule for Q1."
-  }
-]

@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes a new feature (consteval_hash<meta::info>), and the cited evidence is a verbatim code block from \u00a72 Abstract showing the proposed syntax/API in use, including construction of the hasher, calling it, and using it with unordered_map and unordered_set. This satisfies the evidence rule for Q1."
-  }
-]

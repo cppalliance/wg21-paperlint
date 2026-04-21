@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper does not propose a new language or library feature with a concrete syntax or API. It is an analysis paper discussing whether existing constructs (default function arguments and default member initializers) should be treated as being in the immediate context. The revision history explicitly states the tone was changed 'from a firm proposal to analysis.' No new syntax is introduced; the paper recommends semantic changes to existing features and states wording will be provided separately."
-  }
-]

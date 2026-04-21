@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes std::bit_cast_as<T>() as a new feature. The cited evidence is a verbatim code block from \u00a74.1 showing the proposed syntax in use, which satisfies the evidence rule for Q1."
-  }
-]

@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "REJECT",
-    "reason": "The rubric for Q1 requires a code block showing the proposed syntax or API in use \u2014 i.e., demonstrating the new feature being called. The cited snippet `void append_json_number(std::vector<char8_t>& out, int x) { // what do I do? }` is a motivating example showing the *problem*, not the proposed solution in action. However, \u00a73.3.1 contains a code example that actually uses the proposed API: `u8from_chars_result r = from_chars(s.data(), s.data() + s.length(), value);` \u2014 this shows the new from_chars overload for char8_t. Additionally, \u00a73.5.2 Summary contains extensive code showing the proposed template signatures and result types. The evidence quote provided does not satisfy the evidence rule, but better evidence exists in the paper."
-  }
-]

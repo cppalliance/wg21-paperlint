@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The applicability rule for Q1 is met: the paper proposes a new language feature (bit-precise integers / _BitInt for C++). The evidence is a code block showing the proposed syntax in use: `unsigned _BitInt(8) x = 0xFFwb;` found in \u00a72.1. This is a concrete usage example of the proposed feature, satisfying the evidence rule."
-  }
-]

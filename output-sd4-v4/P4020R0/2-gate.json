@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper raises concerns about an existing proposal (P2900) and does not itself propose any new syntax, API, or language feature. The code examples shown are illustrations of existing C++ code, not proposed new features."
-  }
-]

@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "This paper is a policy/call-to-action document discussing Profiles as a direction for C++ safety. It does not propose a specific new language feature with concrete syntax or API. There is no code example, no proposed syntax, and no API design in the paper. The applicability rule for Q1 (the paper proposes a feature) is not met."
-  }
-]

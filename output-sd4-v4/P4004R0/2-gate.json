@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "REJECT",
-    "reason": "The quoted code block is not a usage example of the proposed feature/syntax. It is a motivating example from CWG 1395 showing the original ambiguity problem. The paper's actual proposal is a wording change to the C++ standard (reverting CWG 1395 partial ordering rules). The proposed syntax/API change is shown in the 'Wording for Option 1' section as a prose change to standardese, not as a code block demonstrating usage of a new feature. The paper does not contain a code block showing the proposed new syntax or API in use \u2014 it proposes a behavioral change to template partial ordering rules. The evidence rule for Q1 requires 'a code block showing the proposed syntax or API in use,' which this motivating example does not satisfy."
-  }
-]

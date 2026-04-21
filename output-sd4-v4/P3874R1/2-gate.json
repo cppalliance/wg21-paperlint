@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper is a policy/direction paper that explicitly states 'It does not commit to a particular design' and proposes no specific language feature with concrete syntax or API. Q1's applicability rule requiring a proposed feature is not met."
-  }
-]

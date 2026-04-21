@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes a new language feature ('exclude std.legacy' syntax for clean modular mode), and the cited evidence is a code block from \u00a78.2 showing the proposed syntax in use. The quote appears verbatim in the paper and satisfies the evidence rule for Q1."
-  }
-]

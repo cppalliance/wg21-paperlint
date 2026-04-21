@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper is an analysis/guide documenting the existing sender sub-language in C++26, not a proposal for a new feature with a specific syntax or API. The code blocks demonstrate existing patterns for comparison, not a newly proposed syntax. Q1's applicability rule is not met."
-  }
-]

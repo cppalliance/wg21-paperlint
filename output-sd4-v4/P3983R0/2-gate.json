@@ -1,7 +1,0 @@
-[
-  {
-    "question": "Q1",
-    "verdict": "PASS",
-    "reason": "The paper proposes new features for std::simd (array-like object representation mandate and query traits). The cited code block in \u00a72 shows a proposed usage pattern (abs_via_bitwise using bit_cast on basic_vec), which is a code block demonstrating the proposed feature/API in use. The applicability rule is met (paper proposes a feature), and the evidence rule is met (code block showing the proposed syntax in use)."
-  }
-]
