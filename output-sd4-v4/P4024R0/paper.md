@@ -1,0 +1,38 @@
+Doc. No. P4024R0 Date: 2026-02-23 Audience: WG21 Authors: (Directions Group) Jeff Garland Paul E. McKenney Roger Orr Bjarne Stroustrup David Vandevoorde Michael Wong Reply to: fraggamuffin@gmail.com
+
+## Title: Guidance on Building Consensus and Converging Proposals
+
+1. Motivation: The C++ community thrives on diverse perspectives to ensure the language evolves coherently and serves its vast user base effectively. Historically, many significant C++ features have originated from the vision of individual authors. However, as the language and its user base grow in complexity, proposals originating from a single source or specific corporate context may inadvertently optimize for a specific domain at the expense of broader applicability.
+
+To avoid the risk of creating "dialects" or late-stage design conflicts, we aim to foster earlier collaboration. The goal is not to mandate co-authorship for its own sake, but to ensure that high-impact features benefit from cross-domain scrutiny before they consume significant plenary time.
+
+2. Principles and Recommendations: We propose the following guidelines to encourage convergence and enhance the review process:
+
+## Scope-Appropriate Engagement:
+
+- Small/Localized Features: For bug fixes or features with localized impact, single authorship remains efficient and appropriate.
+- Broad/Strategic Features: For features affecting core language semantics or widely-used library components, authors are strongly encouraged to validate their design against use cases outside their immediate organization early in the process.
+
+## Proactive Unification (The "No Surprise Competitors" Rule):
+
+- Authors should actively check for concurrent or past proposals in the same domain.
+- If multiple papers exist addressing the same problem (e.g., competing concurrency models or networking libraries), the authors are expected to communicate before bringing the conflict to the full working group.
+- The ideal outcome is a unified proposal, or at minimum, a joint paper explicitly detailing the trade-offs between the two approaches.
+
+## Consultation with Experience:
+
+- Long-Tenure Members: Authors are encouraged to consult with long-term committee members who understand WG21 norms, history, and political dynamics. They can flag "landmines" and help frame proposals in ways that resonate with the broader committee.
+- Generalist Review: Authors should seek feedback from individuals with a broad base of knowledge across the entire language and library, rather than just deep experts in a single domain. Domain experts may have "optimized" views that conflict with general usability.
+
+## Rationale and Breadth:
+
+- Proposals for large features should include a "Design Scope" section in their rationale. This section should articulate why the design is general-purpose rather than niche, and acknowledge alternative designs considered.
+- While co-authorship is a strong signal of consensus, it is not required. A single author citing feedback from diverse reviewers (e.g., "Thanks to X from Embedded and Y from HFT for review") is equally valid.
+
+## WG/SG Chair Guidance:
+
+- Facilitation over Mandate: Chairs are encouraged to act as matchmakers rather than gatekeepers. When identifying competing or overlapping proposals, Chairs should facilitate introductions between authors working in similar spaces.
+- Encouraging Convergence: Chairs may request that authors of competing proposals attempt to unify their designs or produce a comparison paper before scheduling further time for the individual papers.
+- Prioritization: Priority should be given to proposals that demonstrate they have addressed the "Broad Consensus" principle, reducing the burden on the committee to adjudicate avoidable conflicts.
+
+By embracing these practices, we can ensure that C++ continues to evolve with a strong, coherent direction, reflecting the collective wisdom and diverse needs of its global community, while still valuing and enabling individual contributions.
