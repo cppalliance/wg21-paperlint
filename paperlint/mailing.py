@@ -31,6 +31,37 @@ _PAPER_LINK_PATTERN = re.compile(
 )
 
 
+def _infer_paper_type(title: str, paper_id: str) -> str:
+    """Derive paper_type from mailing-index signals alone. No paper-content inspection.
+
+    Rules, applied in order — first match wins:
+    - title contains "White Paper" → "white-paper"
+    - title starts with "Info:" → "informational"
+    - title starts with "Ask:" → "proposal"
+    - paper_id starts with "n" (N-paper) → "informational"
+    - paper_id starts with "sd" → "standing-document"
+    - paper_id starts with "p" (P-paper) → "proposal"
+    - otherwise → "proposal" (the authoritative silence default)
+    """
+    title_s = title.strip()
+    title_lower = title_s.lower()
+    pid = paper_id.strip().lower()
+
+    if "white paper" in title_lower:
+        return "white-paper"
+    if title_s.startswith("Info:"):
+        return "informational"
+    if title_s.startswith("Ask:"):
+        return "proposal"
+    if pid.startswith("n"):
+        return "informational"
+    if pid.startswith("sd"):
+        return "standing-document"
+    if pid.startswith("p"):
+        return "proposal"
+    return "proposal"
+
+
 def _extract_paper_metadata_from_row(
     cells: list[Tag],
     page_url: str,
@@ -92,6 +123,7 @@ def _extract_paper_metadata_from_row(
             "authors": authors,
             "document_date": document_date,
             "subgroup": subgroup,
+            "paper_type": _infer_paper_type(title, paper_id),
         }
 
     return None

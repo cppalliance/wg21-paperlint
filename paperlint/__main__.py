@@ -10,12 +10,18 @@
 """Paperlint CLI — evaluate WG21 papers for mechanically verifiable defects.
 
 Usage:
-    python -m paperlint eval P3642R4 --output-dir ./output/
-    python -m paperlint run 2026-02 --output-dir ./data/ --max-cap 50 --max-processes 10
+    python -m paperlint eval 2026-02/P3642R4 --output-dir ./output/
+    python -m paperlint run 2026-02 --output-dir ./data/ --max-cap 50 --max-workers 10
+
+The open-std.org mailing index is authoritative for paper metadata (title,
+authors, audience, paper_type, canonical URL). Every `eval` invocation names
+the mailing and the paper id explicitly; local file paths and bare paper ids
+are not accepted.
 """
 
 import argparse
 import json
+import re
 import sys
 import traceback
 from collections import defaultdict
@@ -110,11 +116,61 @@ def _build_index(output_dir: Path, mailing_id: str, results: list[dict]) -> dict
     return index
 
 
+_EVAL_CONTRACT_MSG = (
+    "eval expects <mailing-id>/<paper-id> (e.g. 2026-02/P3642R4). "
+    "The open-std.org mailing index is authoritative; local file paths and "
+    "bare paper ids are not accepted. To evaluate a cached local file, drop "
+    "it into .paperlint_cache/ and invoke via its mailing/paper-id."
+)
+
+_EVAL_REF_RE = re.compile(r"^(?P<mailing>\d{4}-\d{2})/(?P<paper>[A-Za-z][A-Za-z0-9\-]*)$")
+
+
+def _parse_eval_ref(ref: str) -> tuple[str, str]:
+    """Parse a <mailing-id>/<paper-id> reference. Raise ValueError on violation."""
+    m = _EVAL_REF_RE.match(ref.strip())
+    if not m:
+        raise ValueError(_EVAL_CONTRACT_MSG)
+    return m.group("mailing"), m.group("paper").upper()
+
+
 def cmd_eval(args: argparse.Namespace) -> int:
+    from paperlint.mailing import fetch_papers_for_mailing
+
+    try:
+        mailing_id, paper_id = _parse_eval_ref(args.paper)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 2
+
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Fetching mailing index for {mailing_id}...")
+    papers = fetch_papers_for_mailing(mailing_id)
+    if not papers:
+        print(f"No papers found for mailing {mailing_id}", file=sys.stderr)
+        return 1
+
+    index_path = output_dir.parent / "mailings" / f"{mailing_id}.json"
+    merged = _persist_mailing_index(papers, index_path)
+
+    meta = next((p for p in merged if p["paper_id"].lower() == paper_id.lower()), None)
+    if not meta:
+        print(
+            f"Error: {paper_id} not found in mailing {mailing_id}. "
+            f"Check the paper id or the mailing.",
+            file=sys.stderr,
+        )
+        return 1
+
     try:
-        run_paper_eval(args.paper, output_dir=output_dir)
+        run_paper_eval(
+            paper_id,
+            output_dir=output_dir,
+            source_url=meta.get("url", ""),
+            mailing_meta=meta,
+        )
         return 0
     except FileNotFoundError as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -224,8 +280,14 @@ def main() -> int:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    eval_parser = subparsers.add_parser("eval", help="Evaluate a single paper")
-    eval_parser.add_argument("paper", help="Paper ID (e.g. P3642R4) or path to local file")
+    eval_parser = subparsers.add_parser(
+        "eval",
+        help="Evaluate a single paper via the mailing index",
+    )
+    eval_parser.add_argument(
+        "paper",
+        help="Paper reference in <mailing-id>/<paper-id> form (e.g. 2026-02/P3642R4)",
+    )
     eval_parser.add_argument("--output-dir", required=True, help="Output directory")
 
     run_parser = subparsers.add_parser("run", help="Evaluate all papers in a mailing")

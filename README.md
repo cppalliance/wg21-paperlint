@@ -29,10 +29,12 @@ pip install -e .
 
 ## Usage
 
-Evaluate a single paper by its WG21 document number:
+Paperlint treats the open-std.org mailing index as authoritative for paper metadata (title, authors, audience, paper_type, canonical URL). Every invocation names the mailing explicitly.
+
+Evaluate a single paper (mailing-id + paper-id):
 
 ```bash
-python -m paperlint eval P3642R4 --output-dir ./output/
+python -m paperlint eval 2026-02/P3642R4 --output-dir ./output/
 ```
 
 Evaluate an entire mailing:
@@ -46,6 +48,8 @@ Fetch and persist a mailing index (ground-truth paper metadata from open-std.org
 ```bash
 python -m paperlint mailing 2026-02
 ```
+
+Bare paper-ids (`eval P3642R4`) and local file paths (`eval ./paper.pdf`) are not accepted — the caller must name the mailing.
 
 ### Output
 

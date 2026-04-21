@@ -214,9 +214,13 @@ def _parse_json(raw: str, step: str = "") -> dict | list:
 # Pipeline steps
 # ---------------------------------------------------------------------------
 
-def step_metadata(paper_path: Path, client: openai.OpenAI) -> tuple[str, PaperMeta]:
-    """Step 0: Extract metadata via Sonnet."""
-    print("\n--- Step 0: Metadata ---")
+def step_metadata(paper_path: Path, mailing_meta: dict) -> tuple[str, PaperMeta]:
+    """Step 0: Build PaperMeta from the authoritative mailing index and extract paper text.
+
+    The open-std.org mailing index is authoritative for title, authors, audience, and
+    paper_type. No LLM call is made for metadata; the index is ground truth.
+    """
+    print("\n--- Step 0: Metadata (from mailing index) ---")
 
     paper_number = paper_path.stem.upper()
 
@@ -229,46 +233,16 @@ def step_metadata(paper_path: Path, client: openai.OpenAI) -> tuple[str, PaperMe
         else:
             clean_text = f"[Document: {paper_number}]"
 
-    meta_prompt = (
-        "Read this WG21 paper and return ONLY a JSON object with these fields:\n\n"
-        '{"title": "...", "authors": ["..."], "audience": "...", '
-        '"paper_type": "wording or proposal or directional or white-paper or informational"}\n\n'
-        "Return ONLY the JSON."
-    )
-
-    title = "Unknown"
-    authors: list[str] = []
-    audience = "Unknown"
-    paper_type = "wording"
-
-    for attempt in range(1, 4):
-        try:
-            response = client.chat.completions.create(
-                model=OPENROUTER_SONNET,
-                max_tokens=512,
-                response_format={"type": "json_object"},
-                messages=[{"role": "user", "content": f"{meta_prompt}\n\n{clean_text}"}],
-            )
-            raw = _extract_text(response).strip()
-            if not raw:
-                raise ValueError("Empty response")
-            parsed = json.loads(_strip_fences(raw))
-            title = parsed.get("title", "Unknown")
-            authors = parsed.get("authors", [])
-            if isinstance(authors, str):
-                authors = [a.strip() for a in authors.split(",")]
-            audience = parsed.get("audience", "Unknown")
-            paper_type = parsed.get("paper_type", "wording")
-            if title != "Unknown" and audience != "Unknown":
-                break
-        except Exception as e:
-            print(f"  Metadata attempt {attempt}/3 failed: {e}")
-            if attempt < 3:
-                time.sleep(2)
+    authors = mailing_meta.get("authors", []) or []
+    if isinstance(authors, str):
+        authors = [a.strip() for a in authors.split(",") if a.strip()]
 
     meta = PaperMeta(
-        paper=paper_number, title=title, authors=authors,
-        target_group=audience, paper_type=paper_type,
+        paper=paper_number,
+        title=mailing_meta.get("title", "") or "",
+        authors=authors,
+        target_group=mailing_meta.get("subgroup", "") or "",
+        paper_type=mailing_meta.get("paper_type", "proposal") or "proposal",
         source_file=str(paper_path),
         run_timestamp=datetime.now(timezone.utc).isoformat(),
         model=OPENROUTER_MODEL,
@@ -634,62 +608,34 @@ def step_summary_writer(client: openai.OpenAI, meta: PaperMeta,
 # Paper fetching
 # ---------------------------------------------------------------------------
 
-OPEN_STD_BASE = "https://www.open-std.org/jtc1/sc22/wg21/docs/papers"
-
-
-def _looks_like_doc_id(paper_ref: str) -> bool:
-    u = paper_ref.strip().upper()
-    if not u or "/" in u or "\\" in u:
-        return False
-    return len(u) >= 2 and u[0] in ("P", "N") and u[1].isdigit()
-
 
 def fetch_paper(paper_id: str, cache_dir: Path | None = None, source_url: str = "") -> Path:
-    """Fetch a WG21 document by ID. Returns local file path.
+    """Fetch a WG21 document by ID using the canonical URL from the mailing index.
 
-    When *source_url* is provided (from the mailing index), it is used
-    directly — no year/extension guessing.  Falls back to the legacy
-    heuristic when source_url is empty (single-paper ``eval`` mode).
+    source_url is required — it is the authoritative URL from the mailing index
+    (cells[0] href). No year or extension guessing; no brute-force URL scan.
     """
     import urllib.request
-    import urllib.error
+
+    if not source_url:
+        raise ValueError(
+            f"fetch_paper requires source_url (authoritative from mailing index). "
+            f"Paper: {paper_id}."
+        )
 
     if cache_dir is None:
         cache_dir = Path.cwd() / ".paperlint_cache"
-    paper_lower = paper_id.lower()
     cache_dir.mkdir(parents=True, exist_ok=True)
 
-    if source_url:
-        filename = source_url.rsplit("/", 1)[-1].lower()
-        local = cache_dir / filename
-        if local.exists():
-            print(f"  Found cached: {local}")
-            return local
-        print(f"  Downloading: {source_url}")
-        urllib.request.urlretrieve(source_url, str(local))
-        print(f"  Downloaded: {local}")
+    filename = source_url.rsplit("/", 1)[-1].lower()
+    local = cache_dir / filename
+    if local.exists():
+        print(f"  Found cached: {local}")
         return local
-
-    for ext in [".html", ".pdf"]:
-        local = cache_dir / f"{paper_lower}{ext}"
-        if local.exists():
-            print(f"  Found cached: {local}")
-            return local
-
-    for year in ["2026", "2025", "2024"]:
-        for ext in [".html", ".pdf"]:
-            url = f"{OPEN_STD_BASE}/{year}/{paper_lower}{ext}"
-            local = cache_dir / f"{paper_lower}{ext}"
-            try:
-                print(f"  Trying: {url}")
-                urllib.request.urlretrieve(url, str(local))
-                print(f"  Downloaded: {local}")
-                return local
-            except urllib.error.HTTPError:
-                if local.exists():
-                    local.unlink()
-
-    raise FileNotFoundError(f"Could not find {paper_id} on open-std.org")
+    print(f"  Downloading: {source_url}")
+    urllib.request.urlretrieve(source_url, str(local))
+    print(f"  Downloaded: {local}")
+    return local
 
 
 # ---------------------------------------------------------------------------
@@ -745,19 +691,23 @@ def run_paper_eval(
     source_url: str = "",
     mailing_meta: dict | None = None,
 ) -> dict:
-    """Evaluate one paper. Always writes an evaluation.json, even on failure."""
-    paper_id = paper_ref.strip().upper() if _looks_like_doc_id(paper_ref) else Path(paper_ref).stem.upper()
+    """Evaluate one paper. Always writes an evaluation.json, even on failure.
 
-    # Fetch paper
+    mailing_meta is the authoritative metadata from open-std.org's mailing index;
+    it must be supplied by the caller (cmd_eval / cmd_run resolve it via
+    fetch_papers_for_mailing).
+    """
+    paper_id = paper_ref.strip().upper()
+    if mailing_meta is None:
+        raise ValueError(
+            "run_paper_eval requires mailing_meta (authoritative from open-std.org). "
+            "Callers must resolve the paper through fetch_papers_for_mailing."
+        )
+
+    # Fetch paper using the canonical source_url from the index.
     try:
-        paper_path = Path(paper_ref)
-        if paper_path.exists():
-            pass
-        elif _looks_like_doc_id(paper_ref):
-            print(f"Fetching {paper_ref}...")
-            paper_path = fetch_paper(paper_ref.upper(), source_url=source_url)
-        else:
-            raise FileNotFoundError(paper_ref)
+        print(f"Fetching {paper_ref}...")
+        paper_path = fetch_paper(paper_id, source_url=source_url)
     except Exception as e:
         print(f"  FETCH FAILED: {paper_id} — {e}")
         eval_json = _base_eval_json(source_url, paper_id, mailing_meta)
@@ -775,14 +725,8 @@ def run_paper_eval(
     paper_output_dir = output_dir / paper_id
     paper_output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Step 0: Metadata
-    clean_text, meta = step_metadata(paper_path, client)
-    if meta.title == "Unknown":
-        print(f"  METADATA FAILED: {paper_id}")
-        eval_json = _base_eval_json(source_url, paper_id, mailing_meta)
-        eval_json["summary"] = "This paper could not be evaluated due to a document processing issue."
-        _write_eval_json(eval_json, output_dir, paper_id)
-        return eval_json
+    # Step 0: Metadata from the mailing index (no LLM call).
+    clean_text, meta = step_metadata(paper_path, mailing_meta)
 
     meta_path = paper_output_dir / "meta.json"
     meta_path.write_text(json.dumps(asdict(meta), indent=2), encoding="utf-8")
