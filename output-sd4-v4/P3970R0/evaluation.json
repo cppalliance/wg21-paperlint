@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "paperlint_sha": "cb742007da17",
+  "prompt_hash": "6dbb4d244fc5",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p3970r0.pdf",
+  "pipeline_status": "complete",
+  "paper": "P3970R0",
+  "title": "Profiles and Safety: a call to action",
+  "authors": [
+    "David Vandevoorde",
+    "Jeff Garland",
+    "Paul E. McKenney",
+    "Roger Orr",
+    "Bjarne Stroustrup",
+    "Michael Wong"
+  ],
+  "audience": "EWG, SG12, SG20, SG23",
+  "paper_type": "directional",
+  "generated": "2026-04-21T03:03:43.152067+00:00",
+  "model": "anthropic/claude-opus-4.6",
+  "applicable_count": 0,
+  "answered_count": 0,
+  "summary": "It looks like no questions apply to this paper.",
+  "applicable_answered": [],
+  "applicable_unanswered": [],
+  "not_applicable": [
+    {
+      "question": "Q1",
+      "question_text": "Does the paper show code of the feature it is proposing?"
+    }
+  ],
+  "references": []
+}

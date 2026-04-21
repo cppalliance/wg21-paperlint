@@ -1,0 +1,41 @@
+{
+  "schema_version": "1",
+  "paperlint_sha": "cb742007da17",
+  "prompt_hash": "6dbb4d244fc5",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p3688r6.html",
+  "pipeline_status": "complete",
+  "paper": "P3688R6",
+  "title": "ASCII character utilities",
+  "authors": [
+    "Jan Schultke",
+    "Corentin Jabot"
+  ],
+  "audience": "LEWG",
+  "paper_type": "proposal",
+  "generated": "2026-04-21T03:02:51.250159+00:00",
+  "model": "anthropic/claude-opus-4.6",
+  "applicable_count": 1,
+  "answered_count": 1,
+  "summary": "Answered 1 of 1 applicable questions.",
+  "applicable_answered": [
+    {
+      "question": "Q1",
+      "question_text": "Does the paper show code of the feature it is proposing?",
+      "references": [
+        1
+      ]
+    }
+  ],
+  "applicable_unanswered": [],
+  "not_applicable": [],
+  "references": [
+    {
+      "number": 1,
+      "location": "§3.2 ascii_is_any",
+      "quote": "int get_hex_digit_value(char8_t c) {\n    return c >= u8'0' && c <= u8'9' ? c - u8'0'\n         : c >= u8'A' && c <= u8'F' ? c - u8'A' + 10\n         : c >= u8'a' && c <= u8'f' ? c - u8'a' + 10\n         : -1;\n}\n\nint get_hex_digit_value(char32_t c) {\n    return std::ascii_is_any(c) ? get_hex_digit_value(char8_t(c)) : -1;\n}",
+      "verified": true,
+      "extracted_char_start": 10859,
+      "extracted_char_end": 11229
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper is a strategic direction/governance paper that explicitly states it does not propose changing the language syntax. It proposes no new language feature or standard library addition, so Q1's applicability rule is not met."
+  }
+]

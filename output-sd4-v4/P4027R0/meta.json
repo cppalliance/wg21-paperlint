@@ -1,0 +1,15 @@
+{
+  "paper": "P4027R0",
+  "title": "Library Evolution Polls",
+  "authors": [
+    "Inbal Levi",
+    "Fabio Fracassi",
+    "Andreas Weis",
+    "Corentin Jabot"
+  ],
+  "target_group": "WG21",
+  "paper_type": "informational",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p4027r0.html",
+  "run_timestamp": "2026-04-21T03:05:11.910751+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

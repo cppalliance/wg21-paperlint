@@ -7,8 +7,4 @@ Answered 1 of 1 applicable questions.
 > 3         m=std::move(m).resume(); // switch to 'foo()'
 > 4         m=std::move(m).resume(); // switch to 'foo()'
 > 5         ...
-> 6     }};
-> 7     f=std::move(f).resume(); // start 'f'
-> 8     f=std::move(f).resume(); // resume 'f'
-> 9     ...
-> 10 }
+> …

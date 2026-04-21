@@ -7,8 +7,4 @@ Answered 1 of 1 applicable questions.
 > public:
 >  std::ranges::any_view<Widget> getWidgets();
 > };
-> 
-> std::ranges::any_view<Widget> MyClass::getWidgets() {
->  return widgets_ | std::views::values
->  | std::views::filter(myFilter);
-> }
+> …

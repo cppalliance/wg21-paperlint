@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§2.3.2 Algorithm Composition",
+        "quote": "// With P4006 - concise and self-documenting\nstd::transform(values.begin(), values.end(),\nshifts.begin(),\nresults.begin(),\nstd::bit_lshift<>{});",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "This paper is a priority list / direction document for SG19, not a proposal for a specific language or library feature. It does not propose a concrete new feature with syntax or API that could be demonstrated in a code block. The applicability rule for Q1 requires the paper to propose a feature, which this document does not do \u2014 it lists strategic priorities and calls for proposals."
+  }
+]

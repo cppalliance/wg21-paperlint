@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§6 Implementation",
+        "quote": "[[gnu::always_inline]] constexpr void constant_assert(bool cond) { if (not __builtin_constant_p(cond)) [] [[gnu::error(\"constant assert - not constant\")]] () { }(); if (not cond) [] [[gnu::noinline, gnu::error(\"constant assert - false\")]] () { }(); }",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

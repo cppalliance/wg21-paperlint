@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes std::bit_lshift and std::bit_rshift as new transparent function objects. Section 2.3.2 shows a code block demonstrating the proposed feature in use (std::bit_lshift<>{} passed to std::transform), which satisfies the evidence rule for Q1."
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "paper": "P4032R0",
+  "title": "Strong ordering for meta::info",
+  "authors": [
+    "L\u00e9n\u00e1rd Szolnoki"
+  ],
+  "target_group": "SG17, EWG",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p4032r0.html",
+  "run_timestamp": "2026-04-21T03:05:22.909800+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

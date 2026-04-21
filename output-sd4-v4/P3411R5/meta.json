@@ -1,0 +1,15 @@
+{
+  "paper": "P3411R5",
+  "title": "any_view",
+  "authors": [
+    "Hui Xie",
+    "Louis Dionne",
+    "S. Levent Yilmaz",
+    "Patrick Roberts"
+  ],
+  "target_group": "SG9, LEWG",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3411r5.html",
+  "run_timestamp": "2026-04-21T03:02:38.102860+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

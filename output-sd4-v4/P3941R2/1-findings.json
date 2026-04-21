@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§3.1 affine_on Shape",
+        "quote": "Thus, instead of using\n\n```\naffine_on(sndr, sch)\n```\n\nthe algorithm is used just with the sender:\n\n```\naffine_on(sndr)\n```",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

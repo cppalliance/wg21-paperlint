@@ -7,11 +7,4 @@ Answered 1 of 1 applicable questions.
 >   return utf16be_data
 >     | views::from_big_endian
 >     | views::as_char16_t
->     | views::to_utf32
->     | views::transform(
->         [](const char32_t c) {
->           return static_cast<uint32_t>(c);
->         })
->     | views::to_big_endian
->     | ranges::to<vector>();
-> }
+> …

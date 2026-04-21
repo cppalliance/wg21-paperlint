@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "The main parts section",
+        "quote": "void f(int x) entry_cond(x >= 0);\nvoid use_it()\n{\n f(-42); // entry_cond not met, will not continue to the subsequent code\n void(*p)(int) = f;\n p(-666); // entry_cond not met, will not continue to the subsequent code\n}\n\nint g(int x) return_cond(r: r >= 0)\n{\n if (x == 42)\n return 666; // OK\n else\n return -1; // return_cond not met, will not continue to the subsequent code\n if (x >= 0)\n return x; // OK\n else\n return x; // return_cond not met, will not continue to the subsequent code\n}\n\nvoid h(int x)\n{\n mandatory_assert(x >= 0); // will not continue to the subsequent code if x is negative\n}",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "paper": "P2929R2",
+  "title": "Proposal to add simd_invoke to std::simd",
+  "authors": [
+    "Daniel Towner",
+    "Ruslan Arutyunyan"
+  ],
+  "target_group": "LEWG",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p2929r2.html",
+  "run_timestamp": "2026-04-21T03:02:19.797007+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

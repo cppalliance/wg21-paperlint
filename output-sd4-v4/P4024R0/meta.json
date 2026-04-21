@@ -1,0 +1,17 @@
+{
+  "paper": "P4024R0",
+  "title": "Guidance on Building Consensus and Converging Proposals",
+  "authors": [
+    "Jeff Garland",
+    "Paul E. McKenney",
+    "Roger Orr",
+    "Bjarne Stroustrup",
+    "David Vandevoorde",
+    "Michael Wong"
+  ],
+  "target_group": "WG21",
+  "paper_type": "directional",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p4024r0.pdf",
+  "run_timestamp": "2026-04-21T03:05:12.860219+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

@@ -7,4 +7,4 @@ Answered 1 of 1 applicable questions.
 > constexpr iec-559-type cr_sub(iec-559-type x, iec-559-type y) noexcept;
 > constexpr iec-559-type cr_mul(iec-559-type x, iec-559-type y) noexcept;
 > constexpr iec-559-type cr_div(iec-559-type x, iec-559-type y) noexcept;
-> constexpr iec-559-type cr_sqrt(iec-559-type x) noexcept;
+> …

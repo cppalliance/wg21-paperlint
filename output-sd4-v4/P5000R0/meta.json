@@ -1,0 +1,17 @@
+{
+  "paper": "P5000R0",
+  "title": "DIRECTION FOR ISO C++29",
+  "authors": [
+    "J. Garland",
+    "P. McKenney",
+    "R. Orr",
+    "B. Stroustrup",
+    "D. Vandevoorde",
+    "M. Wong"
+  ],
+  "target_group": "All WG21",
+  "paper_type": "directional",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p5000r0.pdf",
+  "run_timestamp": "2026-04-21T03:05:26.179021+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

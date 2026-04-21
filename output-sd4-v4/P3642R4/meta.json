@@ -1,0 +1,12 @@
+{
+  "paper": "P3642R4",
+  "title": "Carry-less product: std::clmul",
+  "authors": [
+    "Jan Schultke"
+  ],
+  "target_group": "LEWG",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3642r4.html",
+  "run_timestamp": "2026-04-21T03:02:48.473994+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

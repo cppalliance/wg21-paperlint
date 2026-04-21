@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§3.2 status quo examples",
+        "quote": "auto test1() {\n  constexpr int iota[4] = {0, 1, 2, 3};\n  auto x = std::cw<iota>;\n  return x[1]; // #1 OK\n}\nauto test2() {\n  auto x = std::cw<std::array< int , 4> {0, 1, 2, 3}>;\n  return x[1]; // #2 ill-formed\n}",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

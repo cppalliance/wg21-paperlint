@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "REJECT",
+    "reason": "Auto-rejected: gate reported judgment was required. Original: This paper is a C++ standards wording paper that proposes changes to [simd.math] specification. It does not contain a code block showing a proposed new syntax or API feature being used from the perspective of an end user. The code examples in the paper (like the 'struct A' example and the 'auto f(simd::vec<float> x)' example) illustrate the problem being solved, not a demonstration of a new proposed API. The wording sections show template declarations and exposition-only helper functions, but these are specification-level constructs, not user-facing usage examples. The paper's Q1-relevant content would be a code example showing how a user would call the reworded simd.math functions, but no such example is provided as a demonstration of the proposed feature in use. The discovery's determination that Q1 is applicable but not answered is reasonable."
+  }
+]

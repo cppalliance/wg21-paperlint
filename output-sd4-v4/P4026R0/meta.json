@@ -1,0 +1,12 @@
+{
+  "paper": "P4026R0",
+  "title": "Global lookup for begin and end for expansion statements",
+  "authors": [
+    "Vlad Serebrennikov"
+  ],
+  "target_group": "EWG",
+  "paper_type": "wording",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p4026r0.pdf",
+  "run_timestamp": "2026-04-21T03:05:15.421331+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

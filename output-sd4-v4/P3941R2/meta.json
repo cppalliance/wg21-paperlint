@@ -1,0 +1,12 @@
+{
+  "paper": "P3941R2",
+  "title": "Scheduler Affinity",
+  "authors": [
+    "Dietmar K\u00fchl"
+  ],
+  "target_group": "Concurrency Working Group (SG1), Library Evolution Working Group (LEWG), Library Working Group (LWG)",
+  "paper_type": "wording",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3941r2.html",
+  "run_timestamp": "2026-04-21T03:03:41.280723+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

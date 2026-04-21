@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "paperlint_sha": "cb742007da17",
+  "prompt_hash": "6dbb4d244fc5",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p3874r1.pdf",
+  "pipeline_status": "complete",
+  "paper": "P3874R1",
+  "title": "Should C++ be a memory-safe language?",
+  "authors": [
+    "Jon Bauman",
+    "Timur Doumler",
+    "Nevin Liber",
+    "Ryan McDougall",
+    "Pablo Halpern",
+    "Jeff Garland",
+    "Jonathan Müller"
+  ],
+  "audience": "Evolution Working Group",
+  "paper_type": "directional",
+  "generated": "2026-04-21T03:03:29.142228+00:00",
+  "model": "anthropic/claude-opus-4.6",
+  "applicable_count": 0,
+  "answered_count": 0,
+  "summary": "It looks like no questions apply to this paper.",
+  "applicable_answered": [],
+  "applicable_unanswered": [],
+  "not_applicable": [
+    {
+      "question": "Q1",
+      "question_text": "Does the paper show code of the feature it is proposing?"
+    }
+  ],
+  "references": []
+}

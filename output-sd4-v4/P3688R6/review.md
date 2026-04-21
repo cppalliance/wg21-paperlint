@@ -7,8 +7,4 @@ Answered 1 of 1 applicable questions.
 >          : c >= u8'A' && c <= u8'F' ? c - u8'A' + 10
 >          : c >= u8'a' && c <= u8'f' ? c - u8'a' + 10
 >          : -1;
-> }
-> 
-> int get_hex_digit_value(char32_t c) {
->     return std::ascii_is_any(c) ? get_hex_digit_value(char8_t(c)) : -1;
-> }
+> …

@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "paperlint_sha": "cb742007da17",
+  "prompt_hash": "6dbb4d244fc5",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4026r0.pdf",
+  "pipeline_status": "partial",
+  "paper": "P4026R0",
+  "title": "Global lookup for begin and end for expansion statements",
+  "authors": [
+    "Vlad Serebrennikov"
+  ],
+  "audience": "EWG",
+  "paper_type": "wording",
+  "generated": "2026-04-21T03:05:51.545153+00:00",
+  "model": "anthropic/claude-opus-4.6",
+  "applicable_count": 0,
+  "answered_count": 0,
+  "summary": "This paper could not be fully evaluated due to an analysis issue.",
+  "applicable_answered": [],
+  "applicable_unanswered": [],
+  "not_applicable": [],
+  "references": []
+}

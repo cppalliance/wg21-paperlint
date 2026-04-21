@@ -1,0 +1,42 @@
+{
+  "schema_version": "1",
+  "paperlint_sha": "cb742007da17",
+  "prompt_hash": "6dbb4d244fc5",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p3181r1.pdf",
+  "pipeline_status": "complete",
+  "paper": "P3181R1",
+  "title": "Atomic stores and object lifetimes",
+  "authors": [
+    "Hans Boehm",
+    "Dave Clausen",
+    "David Goldblatt"
+  ],
+  "audience": "SG1",
+  "paper_type": "proposal",
+  "generated": "2026-04-21T03:02:54.482737+00:00",
+  "model": "anthropic/claude-opus-4.6",
+  "applicable_count": 1,
+  "answered_count": 1,
+  "summary": "Answered 1 of 1 applicable questions.",
+  "applicable_answered": [
+    {
+      "question": "Q1",
+      "question_text": "Does the paper show code of the feature it is proposing?",
+      "references": [
+        1
+      ]
+    }
+  ],
+  "applicable_unanswered": [],
+  "not_applicable": [],
+  "references": [
+    {
+      "number": 1,
+      "location": "Detailed example section",
+      "quote": "```\nThread A: fence(release);                // irrelevant for present purposes. a1: a->store(1, relaxed); Thread B: b1: r1 = a->load(acquire);     // sees 1. b2: delete a; Reallocating thread C: c1: b = new atomic<int>(0);    // gets the same location as a. c2: r2 = b->load(relaxed);     // Should not see the 1 from thread A.\n```",
+      "verified": true,
+      "extracted_char_start": 2743,
+      "extracted_char_end": 3075
+    }
+  ]
+}

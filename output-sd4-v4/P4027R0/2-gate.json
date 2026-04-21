@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "This paper is a procedural document listing Library Evolution polls. It does not itself propose any new user-facing feature, language feature, or library API. It merely organizes committee votes on other papers' proposals. The applicability rule for Q1 is not met."
+  }
+]

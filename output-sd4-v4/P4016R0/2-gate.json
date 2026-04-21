@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "REJECT",
+    "reason": "Auto-rejected: gate reported judgment was required. Original: The paper proposes a new feature (canonical parallel reduction with a fixed expression structure) and the cited evidence is a code block showing the proposed API syntax with template signatures for `canonical_reduce`. The quote appears verbatim in \u00a79.1. Although the paper explicitly states 'Illustrative only: name/signature not proposed in this paper' and 'API design is deferred', the rubric for Q1 asks for a code block showing the proposed syntax or API in use, and the paper does contain such illustrative code blocks. The applicability rule is met (the paper proposes a feature), and the evidence rule is met (there is a code block showing the proposed syntax)."
+  }
+]

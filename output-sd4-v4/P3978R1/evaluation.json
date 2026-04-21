@@ -1,0 +1,41 @@
+{
+  "schema_version": "1",
+  "paperlint_sha": "cb742007da17",
+  "prompt_hash": "6dbb4d244fc5",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p3978r1.pdf",
+  "pipeline_status": "complete",
+  "paper": "P3978R1",
+  "title": "constant_wrapper should unwrap on call and subscript",
+  "authors": [
+    "Matthias Kretz",
+    "Tomasz Kamiński"
+  ],
+  "audience": "LEWG",
+  "paper_type": "proposal",
+  "generated": "2026-04-21T03:04:01.867347+00:00",
+  "model": "anthropic/claude-opus-4.6",
+  "applicable_count": 1,
+  "answered_count": 1,
+  "summary": "Answered 1 of 1 applicable questions.",
+  "applicable_answered": [
+    {
+      "question": "Q1",
+      "question_text": "Does the paper show code of the feature it is proposing?",
+      "references": [
+        1
+      ]
+    }
+  ],
+  "applicable_unanswered": [],
+  "not_applicable": [],
+  "references": [
+    {
+      "number": 1,
+      "location": "§3.2 status quo examples",
+      "quote": "auto test1() {\n  constexpr int iota[4] = {0, 1, 2, 3};\n  auto x = std::cw<iota>;\n  return x[1]; // #1 OK\n}\nauto test2() {\n  auto x = std::cw<std::array< int , 4> {0, 1, 2, 3}>;\n  return x[1]; // #2 ill-formed\n}",
+      "verified": true,
+      "extracted_char_start": 2976,
+      "extracted_char_end": 3176
+    }
+  ]
+}

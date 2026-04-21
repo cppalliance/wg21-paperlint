@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "REJECT",
+    "reason": "Auto-rejected: gate reported judgment was required. Original: The paper discusses redefining the concepts of narrow and wide contracts in C++. It does not propose a new language feature with concrete syntax/API that would require a usage example in a code block. The code examples shown are illustrative of existing or hypothetical contract syntax (from P2900) rather than proposing a new feature of their own. The paper's contribution is a definitional/conceptual one, not a feature proposal. So 'not applicable' is reasonable."
+  }
+]

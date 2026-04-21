@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§2 Before/After Tables",
+        "quote": "constexpr vector<uint32_t> utf16be_to_utf32be(\n    const vector<uint16_t>& utf16be_data) {\n  return utf16be_data\n    | views::from_big_endian\n    | views::as_char16_t\n    | views::to_utf32\n    | views::transform(\n        [](const char32_t c) {\n          return static_cast<uint32_t>(c);\n        })\n    | views::to_big_endian\n    | ranges::to<vector>();\n}",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

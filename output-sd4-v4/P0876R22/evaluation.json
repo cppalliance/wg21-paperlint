@@ -1,0 +1,41 @@
+{
+  "schema_version": "1",
+  "paperlint_sha": "cb742007da17",
+  "prompt_hash": "6dbb4d244fc5",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p0876r22.pdf",
+  "pipeline_status": "complete",
+  "paper": "P0876R22",
+  "title": "fiber_context - fibers without scheduler",
+  "authors": [
+    "Oliver Kowalke",
+    "Nat Goodspeed"
+  ],
+  "audience": "LEWG, LWG, CWG",
+  "paper_type": "proposal",
+  "generated": "2026-04-21T03:03:16.830084+00:00",
+  "model": "anthropic/claude-opus-4.6",
+  "applicable_count": 1,
+  "answered_count": 1,
+  "summary": "Answered 1 of 1 applicable questions.",
+  "applicable_answered": [
+    {
+      "question": "Q1",
+      "question_text": "Does the paper show code of the feature it is proposing?",
+      "references": [
+        1
+      ]
+    }
+  ],
+  "applicable_unanswered": [],
+  "not_applicable": [],
+  "references": [
+    {
+      "number": 1,
+      "location": "§ solution: avoiding non-const global variables and undefined behaviour",
+      "quote": "1 void foo(){\n2     fiber_context f{[](fiber_context&& m){\n3         m=std::move(m).resume(); // switch to 'foo()'\n4         m=std::move(m).resume(); // switch to 'foo()'\n5         ...\n6     }};\n7     f=std::move(f).resume(); // start 'f'\n8     f=std::move(f).resume(); // resume 'f'\n9     ...\n10 }",
+      "verified": true,
+      "extracted_char_start": 52280,
+      "extracted_char_end": 52534
+    }
+  ]
+}

@@ -7,4 +7,4 @@ Answered 1 of 1 applicable questions.
 > 
 > template <typename ...Ts>
 > using type_set
-> = [:substitute(^^type_set_impl, std::set{^^Ts...}):];
+> …

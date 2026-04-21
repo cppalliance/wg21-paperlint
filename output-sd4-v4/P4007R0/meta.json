@@ -1,0 +1,13 @@
+{
+  "paper": "P4007R0",
+  "title": "Senders and Coroutines",
+  "authors": [
+    "Vinnie Falco",
+    "Mungo Gill"
+  ],
+  "target_group": "LEWG",
+  "paper_type": "directional",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p4007r0.pdf",
+  "run_timestamp": "2026-04-21T03:05:05.352863+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§2 Abstract",
+        "quote": "class MyClass {\n std::unordered_map<Key, Widget> widgets_;\npublic:\n std::ranges::any_view<Widget> getWidgets();\n};\n\nstd::ranges::any_view<Widget> MyClass::getWidgets() {\n return widgets_ | std::views::values\n | std::views::filter(myFilter);\n}",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

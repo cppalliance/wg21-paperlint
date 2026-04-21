@@ -7,5 +7,4 @@ Answered 1 of 1 applicable questions.
 > template<class T, size_t N>
 > struct array {
 > T __array[N];
-> // ...
-> };
+> …

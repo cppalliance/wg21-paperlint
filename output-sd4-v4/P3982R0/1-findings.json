@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§3.3 Example of static output extent usage",
+        "quote": "```\n\nauto smd = sumdspan(md, strided_slice{cw<0>, cw<5>, md.extents()[0] / 5})\n\n```",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

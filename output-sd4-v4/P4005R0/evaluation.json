@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "paperlint_sha": "cb742007da17",
+  "prompt_hash": "6dbb4d244fc5",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4005r0.html",
+  "pipeline_status": "complete",
+  "paper": "P4005R0",
+  "title": "A proposal for guaranteed-(quick-)enforced contracts",
+  "authors": [
+    "Ville Voutilainen"
+  ],
+  "audience": "EWG",
+  "paper_type": "proposal",
+  "generated": "2026-04-21T03:04:12.022782+00:00",
+  "model": "anthropic/claude-opus-4.6",
+  "applicable_count": 1,
+  "answered_count": 1,
+  "summary": "Answered 1 of 1 applicable questions.",
+  "applicable_answered": [
+    {
+      "question": "Q1",
+      "question_text": "Does the paper show code of the feature it is proposing?",
+      "references": [
+        1
+      ]
+    }
+  ],
+  "applicable_unanswered": [],
+  "not_applicable": [],
+  "references": [
+    {
+      "number": 1,
+      "location": "The main parts section",
+      "quote": "void f(int x) entry_cond(x >= 0);\nvoid use_it()\n{\n f(-42); // entry_cond not met, will not continue to the subsequent code\n void(*p)(int) = f;\n p(-666); // entry_cond not met, will not continue to the subsequent code\n}\n\nint g(int x) return_cond(r: r >= 0)\n{\n if (x == 42)\n return 666; // OK\n else\n return -1; // return_cond not met, will not continue to the subsequent code\n if (x >= 0)\n return x; // OK\n else\n return x; // return_cond not met, will not continue to the subsequent code\n}\n\nvoid h(int x)\n{\n mandatory_assert(x >= 0); // will not continue to the subsequent code if x is negative\n}",
+      "verified": true,
+      "extracted_char_start": 2540,
+      "extracted_char_end": 3184
+    }
+  ]
+}

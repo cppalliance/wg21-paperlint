@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes four new range adaptor objects (views::from_big_endian, views::to_big_endian, views::from_little_endian, views::to_little_endian). The cited evidence is a code block from \u00a72 Before/After Tables showing the proposed syntax in use (views::from_big_endian and views::to_big_endian in a pipeline). The quote appears verbatim in the paper. All three checks pass."
+  }
+]

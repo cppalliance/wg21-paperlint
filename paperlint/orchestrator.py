@@ -716,9 +716,16 @@ def _write_review_md(eval_json: dict, output_dir: Path, paper_id: str) -> None:
                 if not ref:
                     continue
                 quote = ref.get("quote", "").strip()
-                if quote:
-                    quoted = "\n".join(f"> {ln}" for ln in quote.splitlines())
-                    lines.append(quoted)
+                if not quote:
+                    continue
+                # Preview cap: show at most 5 lines. Full quote stays in evaluation.json.
+                quote_lines = quote.splitlines()
+                truncated = len(quote_lines) > 5
+                shown = quote_lines[:5]
+                quoted = "\n".join(f"> {ln}" for ln in shown)
+                lines.append(quoted)
+                if truncated:
+                    lines.append("> …")
         lines.append("")
 
     if not_applicable:

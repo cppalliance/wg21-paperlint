@@ -1,0 +1,12 @@
+{
+  "paper": "P3953R1",
+  "title": "Rename std::runtime_format",
+  "authors": [
+    "Victor Zverovich"
+  ],
+  "target_group": "LEWG",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3953r1.html",
+  "run_timestamp": "2026-04-21T03:03:40.766520+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

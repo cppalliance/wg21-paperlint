@@ -7,4 +7,4 @@ Answered 1 of 1 applicable questions.
 > auto bits = std::bit_cast<basic_vec<uint_t, Abi>>(v);
 > bits &= ~sign_bit_mask;
 > return std::bit_cast<basic_vec<T, Abi>>(bits);
-> }
+> …

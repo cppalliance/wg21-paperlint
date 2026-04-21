@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "REJECT",
+    "reason": "Auto-rejected: gate reported judgment was required. Original: The paper proposes adding operator() and operator[] overloads to constant_wrapper. The evidence rule for Q1 requires a code block showing the proposed syntax or API in use. The cited passage shows code examples demonstrating the current behavior (status quo) that motivates the proposal. While these are motivating examples rather than examples of the proposed new syntax, the paper also contains proposed usage examples in \u00a73.1 (e.g., `cw<iota>[1] \u2192 1`, `cw<iota>[cw<1>] \u2192 cw<1>`, `cw<fun>(1, 2) \u2192 fun(1, 2)`) and the wording section \u00a75.2 contains the proposed API signatures. The cited code block is a valid code example showing the feature (subscript on constant_wrapper) in use, even though #2 is currently ill-formed and the proposal aims to make it work. This satisfies the evidence rule of showing the proposed syntax/API in use."
+  }
+]

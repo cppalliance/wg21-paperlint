@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "Status quo of the Working Draft",
+        "quote": "namespace N {\n  struct S1 { int array[8]; };\n  template <typename T> int* begin(T&);\n  int* end(S1&);\n  struct TupleLike { int first; int second; };\n}\nvoid f1() {\n  // error: no viable candidate for end()\n  template for (auto i : N::TupleLike{});\n}",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

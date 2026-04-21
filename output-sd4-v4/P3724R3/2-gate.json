@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes new standard library features (integer division functions with various rounding modes). The evidence quote is a code block from \u00a73 Motivation showing the proposed syntax `std::div_to_pos_inf(elements, bucket_size)` in use, which satisfies the Q1 evidence rule of a code block demonstrating the proposed API."
+  }
+]

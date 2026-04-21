@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper is an analysis/position paper documenting a structural limitation. It does not propose a new feature, syntax, or API. It only describes existing mechanisms and identifies a tradeoff. The three directions mentioned in the conclusion are suggestions for future exploration, not concrete proposals with proposed syntax."
+  }
+]

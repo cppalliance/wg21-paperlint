@@ -1,0 +1,18 @@
+{
+  "paper": "P3045R7",
+  "title": "Quantities and units library",
+  "authors": [
+    "Mateusz Pusz",
+    "Dominik Berner",
+    "Johel Ernesto Guerrero Pe\u00f1a",
+    "Chip Hogg",
+    "Nicolas Holthaus",
+    "Roth Michaels",
+    "Vincent Reverdy"
+  ],
+  "target_group": "LEWG Library Evolution Working Group, SG6 Numerics, SG16 Unicode, SG20 Education",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3045r7.html",
+  "run_timestamp": "2026-04-21T03:02:33.087442+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

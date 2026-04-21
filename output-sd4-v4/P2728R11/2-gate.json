@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper clearly proposes new features (UTF transcoding views), the applicability rule is met, and the cited quote from \u00a71 shows a code block demonstrating the proposed syntax/API in use: `static_assert((u8\"\ud83d\ude42\" | views::to_utf32 | ranges::to<u32string>()) == U\"\ud83d\ude42\");`. This is a valid code example showing the proposed feature."
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§3.4 How Does a Coroutine Start?",
+        "quote": "// Basic: executor only\nrun_async( ex )( my_task() );\n\n// Full: executor, stop_token, frame allocator, success handler, error handler\nrun_async( ex, st, alloc, h1, h2 )( my_task() );\n\n// Example with handlers\nrun_async(\n    ioc.get_executor(),\n    source.get_token(),\n    [](int result) {\n        std::cout << \"Got: \" << result << \"\\n\";\n    },\n    [](std::exception_ptr ep) {\n        /* handle error */\n    }\n)( compute_value() );",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

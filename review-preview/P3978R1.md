@@ -7,7 +7,4 @@ Answered 1 of 1 applicable questions.
 >   auto x = std::cw<iota>;
 >   return x[1]; // #1 OK
 > }
-> auto test2() {
->   auto x = std::cw<std::array< int , 4> {0, 1, 2, 3}>;
->   return x[1]; // #2 ill-formed
-> }
+> …

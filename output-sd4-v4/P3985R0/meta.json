@@ -1,0 +1,12 @@
+{
+  "paper": "P3985R0",
+  "title": "Concepts for std::simd",
+  "authors": [
+    "Daniel Towner"
+  ],
+  "target_group": "LEWG, LWG",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3985r0.html",
+  "run_timestamp": "2026-04-21T03:04:07.585176+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

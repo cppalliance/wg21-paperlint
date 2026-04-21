@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes the fiber_context feature, meeting the applicability rule. The cited evidence is a code block showing the proposed API in use (constructing a fiber_context with a lambda, calling resume()), which appears verbatim in the 'solution: avoiding non-const global variables and undefined behaviour' section. This satisfies the evidence rule for Q1."
+  }
+]

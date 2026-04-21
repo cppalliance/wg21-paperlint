@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "paperlint_sha": "cb742007da17",
+  "prompt_hash": "6dbb4d244fc5",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p3385r7.html",
+  "pipeline_status": "complete",
+  "paper": "P3385R7",
+  "title": "Attributes reflection",
+  "authors": [
+    "Aurelien Cassagnes"
+  ],
+  "audience": "EWG, LEWG",
+  "paper_type": "proposal",
+  "generated": "2026-04-21T03:02:33.085552+00:00",
+  "model": "anthropic/claude-opus-4.6",
+  "applicable_count": 1,
+  "answered_count": 1,
+  "summary": "Answered 1 of 1 applicable questions.",
+  "applicable_answered": [
+    {
+      "question": "Q1",
+      "question_text": "Does the paper show code of the feature it is proposing?",
+      "references": [
+        1
+      ]
+    }
+  ],
+  "applicable_unanswered": [],
+  "not_applicable": [],
+  "references": [
+    {
+      "number": 1,
+      "location": "§2.1 Motivating example",
+      "quote": "template<class T>\nstruct MigratedT {\n struct impl;\n consteval {\n std::vector<std::meta::info> migratedMembers = {};\n for (auto member : nonstatic_data_members_of(^^T, ctx)) {\n if (!std::meta::has_attribute(member, ^^[[deprecated]])) {\n migratedMembers.push_back(data_member_spec(\n std::meta::type_of(member),\n {.name = std::meta::identifier_of(member)}\n ));\n }\n }\n define_aggregate(^^impl, migratedMembers);\n }\n};",
+      "verified": true,
+      "extracted_char_start": 1458,
+      "extracted_char_end": 1921
+    }
+  ]
+}

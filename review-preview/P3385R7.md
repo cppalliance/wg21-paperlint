@@ -7,14 +7,4 @@ Answered 1 of 1 applicable questions.
 >  struct impl;
 >  consteval {
 >  std::vector<std::meta::info> migratedMembers = {};
->  for (auto member : nonstatic_data_members_of(^^T, ctx)) {
->  if (!std::meta::has_attribute(member, ^^[[deprecated]])) {
->  migratedMembers.push_back(data_member_spec(
->  std::meta::type_of(member),
->  {.name = std::meta::identifier_of(member)}
->  ));
->  }
->  }
->  define_aggregate(^^impl, migratedMembers);
->  }
-> };
+> …

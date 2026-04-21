@@ -1,0 +1,13 @@
+{
+  "paper": "P3822R1",
+  "title": "Conditional noexcept specifiers in compound requirements",
+  "authors": [
+    "Viacheslav Luchkin",
+    "Ga\u0161per A\u017eman"
+  ],
+  "target_group": "EWG",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3822r1.html",
+  "run_timestamp": "2026-04-21T03:03:07.070531+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes informative annexes cataloging existing undefined behavior and IFNDR cases in the C++ standard. It does not propose any new language feature, syntax, API, or library addition. The applicability rule for Q1 is not met."
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§2.2",
+        "quote": "basic_vec <T, Abi> x = ... auto [...vs] = simd::chunk <2>(x); auto y = simd::cat(vs...); static_assert (is_same_v < decltype (x), decltype (y)>); // can fail",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§3.1 Type Safety and Strong Typedefs",
+        "quote": "struct Meters { float value; };\nstruct Seconds { float value; };\n\n// Type safety at scalar level\nMeters distance{100.0f};\nSeconds time{5.0f};\n// Meters m = time; // Error: type mismatch\n\n// Same type safety should extend to parallel code\nvec<Meters> distances = {100.0f, 200.0f, 150.0f, 180.0f};\nvec<Seconds> times = {5.0f, 10.0f, 7.5f, 9.0f};\n// vec<Meters> m = times; // Should also be error",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

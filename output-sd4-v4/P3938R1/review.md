@@ -7,5 +7,4 @@ Answered 1 of 1 applicable questions.
 > 
 > // "default" qNaN:
 > template void f<std::bit_cast<float>(0x7fc00000)>();
-> // also qNaN (same value, different bit pattern):
-> template void f<std::bit_cast<float>(0x7fc00001)>();
+> …

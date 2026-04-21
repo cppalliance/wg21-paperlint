@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§2.1 Motivating example",
+        "quote": "template<class T>\nstruct MigratedT {\n struct impl;\n consteval {\n std::vector<std::meta::info> migratedMembers = {};\n for (auto member : nonstatic_data_members_of(^^T, ctx)) {\n if (!std::meta::has_attribute(member, ^^[[deprecated]])) {\n migratedMembers.push_back(data_member_spec(\n std::meta::type_of(member),\n {.name = std::meta::identifier_of(member)}\n ));\n }\n }\n define_aggregate(^^impl, migratedMembers);\n }\n};",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

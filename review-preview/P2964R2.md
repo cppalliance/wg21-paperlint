@@ -7,10 +7,4 @@ Answered 1 of 1 applicable questions.
 > 
 > // Type safety at scalar level
 > Meters distance{100.0f};
-> Seconds time{5.0f};
-> // Meters m = time; // Error: type mismatch
-> 
-> // Same type safety should extend to parallel code
-> vec<Meters> distances = {100.0f, 200.0f, 150.0f, 180.0f};
-> vec<Seconds> times = {5.0f, 10.0f, 7.5f, 9.0f};
-> // vec<Meters> m = times; // Should also be error
+> …

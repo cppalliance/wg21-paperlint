@@ -1,0 +1,13 @@
+{
+  "paper": "P3864R1",
+  "title": "Correctly rounded floating-point maths functions",
+  "authors": [
+    "Guy Davidson",
+    "Jan Schultke"
+  ],
+  "target_group": "SG6",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3864r1.html",
+  "run_timestamp": "2026-04-21T03:03:10.121922+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

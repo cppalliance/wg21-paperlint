@@ -7,7 +7,4 @@ Answered 1 of 1 applicable questions.
 > { f() } noexcept(noexc);
 > };
 > template<bool noexc>
-> struct callable_ref {
-> callable_ref(invocable<noexc> auto&& fn);
-> [...]
-> };
+> …

@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§4 Proposal",
+        "quote": "```\nstd::format(\"{}\n\", std::filesystem::path(L\"\\xD800\"));\n\n```\n\n\n\n```\n\"\"\n\n```\n\n\n\n```\n\"\\xED\\xA0\\x80\"\n\n```",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§3 Motivation",
+        "quote": "const int bucket_size = 1000;\nint elements = 100;\n\nint buckets_required = elements / bucket_size; // WRONG, zero\nint buckets_required = std::div_to_pos_inf(elements, bucket_size); // OK, one bucket",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "REJECT",
+    "reason": "The paper proposes multiple novel language features (enforce_condition, enforce_preconditions, enforce_condition_on_return, enforce_postconditions_on_return, enforce_preconditions_on_call, enforce_postconditions_on_call) with concrete syntax definitions and usage examples. Code blocks showing proposed syntax in use include 'enforce_preconditions;' and 'if constexpr( precondition_enforcement_required ) enforce_preconditions;'. Despite the author's disclaimer about not pursuing adoption, the paper presents novel features with sufficient concreteness that Q1 should be applicable."
+  }
+]

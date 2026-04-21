@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes new/clarified wording for floating-point types in C++. The code block shown is a verbatim quote from section 3.14, demonstrating the proposed feature (template argument equivalence based on bitwise identity for floating-point types) with concrete C++ code. The applicability rule is met (paper proposes a language/library feature), and the evidence rule is met (a code block showing the proposed syntax/API in use)."
+  }
+]

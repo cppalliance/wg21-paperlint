@@ -7,4 +7,4 @@ Answered 1 of 1 applicable questions.
 >  bit_cast<char8_t>(S{}); // error: bit_cast<char8_t, S> is always undefined
 >  bit_cast<unsigned char>(S{}); // OK, returns indeterminate value
 >  bit_cast_zero_padding<char8_t>(S{}); // OK, returns char8_t{0}
-> }
+> …

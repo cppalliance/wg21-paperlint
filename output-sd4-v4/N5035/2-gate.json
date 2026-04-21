@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "This paper is an administrative telecon agenda for WG21, not a proposal for a new language or library feature. It contains no proposed syntax, API, or feature design. The applicability rule for Q1 (the paper proposes a feature) is clearly not met."
+  }
+]

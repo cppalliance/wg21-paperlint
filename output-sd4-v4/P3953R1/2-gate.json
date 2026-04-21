@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes renaming std::runtime_format to std::dynamic_format. Section 4 contains a code block showing the proposed API in use: `std::format(std::dynamic_format(fmt), value)`. The quote is verbatim from the paper, the applicability rule is met (the paper proposes a new feature/API), and the evidence rule is satisfied (a code block showing the proposed syntax in use)."
+  }
+]

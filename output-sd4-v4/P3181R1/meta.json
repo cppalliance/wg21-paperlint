@@ -1,0 +1,14 @@
+{
+  "paper": "P3181R1",
+  "title": "Atomic stores and object lifetimes",
+  "authors": [
+    "Hans Boehm",
+    "Dave Clausen",
+    "David Goldblatt"
+  ],
+  "target_group": "SG1",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3181r1.pdf",
+  "run_timestamp": "2026-04-21T03:02:54.482737+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

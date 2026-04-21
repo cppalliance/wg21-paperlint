@@ -7,6 +7,4 @@ Answered 1 of 1 applicable questions.
 > #include <cstdint>
 > 
 > uint32_t mix(uint32_t x, uint32_t y) {
->     return std::funnel_shift_right(x, y, 17);
-> }
-> ```
+> …

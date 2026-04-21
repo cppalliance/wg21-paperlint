@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§3 Motivation, \"With <=> (proposed)\" column",
+        "quote": "template <typename ...>\nstruct type_set_impl;\n\ntemplate <typename ...Ts>\nusing type_set\n= [:substitute(^^type_set_impl, std::set{^^Ts...}):];",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

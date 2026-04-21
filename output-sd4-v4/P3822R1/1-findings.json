@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§3 Motivation, After column",
+        "quote": "template<typename F, bool noexc>\nconcept invocable = requires(F f) {\n{ f() } noexcept(noexc);\n};\ntemplate<bool noexc>\nstruct callable_ref {\ncallable_ref(invocable<noexc> auto&& fn);\n[...]\n};",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

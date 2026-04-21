@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§4 Proposed Naming: std::dynamic_format",
+        "quote": "```\nconstexpr auto f(std::string_view fmt, int value) {\nreturn std::format(std::dynamic_format(fmt), value);\n}\n```",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

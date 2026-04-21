@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§9.1 New Algorithm Approach (Illustrative)",
+        "quote": "//\tIllustrative\tonly:\tname/signature\tnot\tproposed\tin\tthis\tpaper\nnamespace std\t{\n//\tSequential\t/\tUnsequenced\tevaluation\t(constexpr\tfriendly)\ntemplate <size_t\tL, class InputIt, class T, class BinaryOp>\nconstexpr T\tcanonical_reduce(InputIt\tfirst,\tInputIt\tlast,\tT\tinit,\tBinaryOp\top);\n//\tExecution\tpolicy\toverloads\ntemplate <size_t\tL, class ExecutionPolicy, class ForwardIt, class T, class BinaryOp>\nT\tcanonical_reduce(ExecutionPolicy&&\tpolicy,\nForwardIt\tfirst,\tForwardIt\tlast,\tT\tinit,\tBinaryOp\top);\n}",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

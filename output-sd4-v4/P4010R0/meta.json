@@ -1,0 +1,12 @@
+{
+  "paper": "P4010R0",
+  "title": "Funnel Shift Operations",
+  "authors": [
+    "Daniel Towner"
+  ],
+  "target_group": "SG6, LEWG",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p4010r0.html",
+  "run_timestamp": "2026-04-21T03:04:21.577905+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

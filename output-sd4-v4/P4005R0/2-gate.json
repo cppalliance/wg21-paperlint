@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes new language features (entry_cond, return_cond, mandatory_assert) and provides a code block in 'The main parts' section showing the proposed syntax in use. The quoted evidence matches the paper's content and satisfies the evidence rule of showing proposed syntax/API in a code block."
+  }
+]

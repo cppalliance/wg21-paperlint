@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§5.1 Hash Mixing",
+        "quote": "```\n#include <bit>\n#include <cstdint>\n\nuint32_t mix(uint32_t x, uint32_t y) {\n    return std::funnel_shift_right(x, y, 17);\n}\n```",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

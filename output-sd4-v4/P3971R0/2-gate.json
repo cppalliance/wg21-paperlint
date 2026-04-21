@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes std::rebind and rebind_t as new language/library features. The cited evidence from \u00a74.1 is a code block showing the proposed syntax in use (std::rebind<double>(af), std::rebind_t<double, ...>, etc.), which appears verbatim in the paper. The applicability rule is met (the paper proposes a feature), and the evidence rule is met (a code block showing the proposed syntax/API in use)."
+  }
+]

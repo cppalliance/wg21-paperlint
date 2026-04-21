@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes removing an existing function (try_append_range) from inplace_vector, not adding a new feature. The discussion of potential future alternatives (append_some) is speculative and not a concrete proposal. The applicability rule for Q1 is not met."
+  }
+]

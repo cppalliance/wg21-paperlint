@@ -1,0 +1,13 @@
+{
+  "paper": "P3876R1",
+  "title": "Extending <charconv> support to more character types",
+  "authors": [
+    "Jan Schultke",
+    "Peter Bindels"
+  ],
+  "target_group": "SG16",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3876r1.html",
+  "run_timestamp": "2026-04-21T03:03:15.241303+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

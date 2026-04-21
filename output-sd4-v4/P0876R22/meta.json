@@ -1,0 +1,13 @@
+{
+  "paper": "P0876R22",
+  "title": "fiber_context - fibers without scheduler",
+  "authors": [
+    "Oliver Kowalke",
+    "Nat Goodspeed"
+  ],
+  "target_group": "LEWG, LWG, CWG",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p0876r22.pdf",
+  "run_timestamp": "2026-04-21T03:03:16.830084+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

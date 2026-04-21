@@ -1,0 +1,12 @@
+{
+  "paper": "P3737R3",
+  "title": "std::array is a wrapper for an array!",
+  "authors": [
+    "Jan Schultke"
+  ],
+  "target_group": "LEWG",
+  "paper_type": "wording",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3737r3.html",
+  "run_timestamp": "2026-04-21T03:02:58.186059+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

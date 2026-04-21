@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes `is_structural_type` (a reflection metafunction) and `is_structural` (a type trait). Section 3.1.1 contains code blocks showing the proposed API in use (e.g., `requires is_structural_v<decltype(V)>`). The applicability rule is met (the paper proposes a new feature), the quote appears verbatim in \u00a73.1.1, and the code block demonstrates the proposed syntax/API in use."
+  }
+]

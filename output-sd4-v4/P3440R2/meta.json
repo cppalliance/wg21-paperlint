@@ -1,0 +1,12 @@
+{
+  "paper": "P3440R2",
+  "title": "Add mask_from_count function to std::simd",
+  "authors": [
+    "Daniel Towner"
+  ],
+  "target_group": "LEWG",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3440r2.html",
+  "run_timestamp": "2026-04-21T03:02:41.981515+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

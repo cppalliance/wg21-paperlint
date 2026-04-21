@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "This paper (P2000R5) is a direction/philosophy document for the ISO C++ committee. It does not propose any specific new language or library feature with concrete syntax or API. The applicability rule for Q1 requires the paper to propose a feature, which this paper does not do."
+  }
+]

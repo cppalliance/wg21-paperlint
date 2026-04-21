@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "REJECT",
+    "reason": "The cited code block shows the BEFORE/problem code (existing verbose constraints), not the proposed new syntax/API. The proposed feature is the new concepts. A proper example of the proposed syntax in use would be something like the concept definitions in \u00a76.2 or the usage example in \u00a71.2 showing vec_complex. The evidence rule for Q1 requires 'a code block showing the proposed syntax or API in use,' but this code block demonstrates the problem the proposal aims to solve, not the proposed solution."
+  }
+]

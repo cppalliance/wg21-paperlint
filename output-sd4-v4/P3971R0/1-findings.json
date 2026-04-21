@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§4.1 Basic Usage",
+        "quote": "// Arrays - preserves size\nstd::array<float, 4> af = {1.0f, 2.0f, 3.0f, 4.0f};\nstd::array<double, 4> ad = std::rebind<double>(af);\n\n// Type computation\nusing ArrayDouble4 = std::rebind_t<double, decltype(af)>;\nstatic_assert(std::is_same_v<ArrayDouble4, std::array<double, 4>>);\n\n// Vectors - preserves allocator\nstd::vector<int> vi = {1, 2, 3, 4, 5};\nstd::vector<long> vl = std::rebind<long>(vi);\n\n// Complex numbers\nstd::complex<float> cf{3.0f, 4.0f};\nstd::complex<double> cd = std::rebind<double>(cf);",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

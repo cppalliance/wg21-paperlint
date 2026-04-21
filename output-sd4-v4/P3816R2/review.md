@@ -7,7 +7,4 @@ Answered 1 of 1 applicable questions.
 > const auto hasher = consteval_hash<meta::info>{}; // proposed
 > const size_t h = hasher(^^::);
 > 
-> // now possible
-> unordered_map<meta::info, int, consteval_hash<meta::info>> m;
-> unordered_set<meta::info, consteval_hash<meta::info>> s;
-> }
+> …

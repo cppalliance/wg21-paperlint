@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "Introduction",
+        "quote": "template<class T> void print(ostream &os, const T &t) { os << t; } template <class T, class... Args> void print(ostream &os, const T &t, const Args&... rest) { os << t << \", \"; print(os, rest...); } int main() { print(cout, 42); print(cout, 42, 1.23); }",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

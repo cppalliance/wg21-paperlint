@@ -1,0 +1,12 @@
+{
+  "paper": "P4029R0",
+  "title": "The SG14 Priority List for C++29/32",
+  "authors": [
+    "Michael Wong"
+  ],
+  "target_group": "SG14",
+  "paper_type": "directional",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p4029r0.pdf",
+  "run_timestamp": "2026-04-21T03:05:21.313982+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

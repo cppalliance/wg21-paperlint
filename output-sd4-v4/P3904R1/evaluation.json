@@ -1,0 +1,28 @@
+{
+  "schema_version": "1",
+  "paperlint_sha": "cb742007da17",
+  "prompt_hash": "6dbb4d244fc5",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p3904r1.html",
+  "pipeline_status": "complete",
+  "paper": "P3904R1",
+  "title": "When paths go WTF: making formatting lossless",
+  "authors": [
+    "Victor Zverovich"
+  ],
+  "audience": "SG16",
+  "paper_type": "proposal",
+  "generated": "2026-04-21T03:03:18.406313+00:00",
+  "model": "anthropic/claude-opus-4.6",
+  "applicable_count": 1,
+  "answered_count": 0,
+  "summary": "Answered 0 of 1 applicable questions.",
+  "applicable_answered": [],
+  "applicable_unanswered": [
+    {
+      "question": "Q1",
+      "question_text": "Does the paper show code of the feature it is proposing?"
+    }
+  ],
+  "not_applicable": [],
+  "references": []
+}

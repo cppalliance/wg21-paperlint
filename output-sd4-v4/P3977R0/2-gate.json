@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "REJECT",
+    "reason": "The paper proposes a taxonomy/classification system for contracts, not a new language or library feature. The cited code 'float sqrt(float x) pre <enforce> (x >= 0);' is explicitly attributed to another proposal (P3400R2) and used only to illustrate a taxonomic category. The paper does not propose any new syntax or API."
+  }
+]

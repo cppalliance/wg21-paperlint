@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes a quantities and units library feature. The evidence is a code block from \u00a712.1 showing the proposed API in use with quantity creation via multiply syntax, unit conversions, and derived quantity operations. The quote appears verbatim in the paper at the cited location."
+  }
+]

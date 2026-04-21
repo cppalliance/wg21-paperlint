@@ -1,0 +1,13 @@
+{
+  "paper": "P3816R2",
+  "title": "Hashing meta::info",
+  "authors": [
+    "Matt Cummins",
+    "Valentyn Yukhymenko"
+  ],
+  "target_group": "SG7 Reflection",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3816r2.html",
+  "run_timestamp": "2026-04-21T03:03:02.956010+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

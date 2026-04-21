@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§ solution: avoiding non-const global variables and undefined behaviour",
+        "quote": "1 void foo(){\n2     fiber_context f{[](fiber_context&& m){\n3         m=std::move(m).resume(); // switch to 'foo()'\n4         m=std::move(m).resume(); // switch to 'foo()'\n5         ...\n6     }};\n7     f=std::move(f).resume(); // start 'f'\n8     f=std::move(f).resume(); // resume 'f'\n9     ...\n10 }",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

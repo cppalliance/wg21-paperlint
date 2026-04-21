@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes new library functions (cr_add, cr_sub, cr_mul, cr_div, cr_sqrt). The quoted evidence is a code block showing the proposed API declarations, which appears verbatim in \u00a73.2 [cmath.syn]. This satisfies the evidence rule for Q1."
+  }
+]

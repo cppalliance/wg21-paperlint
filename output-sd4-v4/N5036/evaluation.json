@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "paperlint_sha": "cb742007da17",
+  "prompt_hash": "6dbb4d244fc5",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/n5036.pdf",
+  "pipeline_status": "complete",
+  "paper": "N5036",
+  "title": "Extensions to C++ for Transactional Memory Version 2",
+  "authors": [
+    "Michael Wong"
+  ],
+  "audience": "WG21",
+  "paper_type": "proposal",
+  "generated": "2026-04-21T03:02:53.987292+00:00",
+  "model": "anthropic/claude-opus-4.6",
+  "applicable_count": 1,
+  "answered_count": 1,
+  "summary": "Answered 1 of 1 applicable questions.",
+  "applicable_answered": [
+    {
+      "question": "Q1",
+      "question_text": "Does the paper show code of the feature it is proposing?",
+      "references": [
+        1
+      ]
+    }
+  ],
+  "applicable_unanswered": [],
+  "not_applicable": [],
+  "references": [
+    {
+      "number": 1,
+      "location": "§8.8 Atomic statement, Example 1",
+      "quote": "[ Example 1 : unsigned int f() { static unsigned int i = 0; atomic do { ++i; return i; } } Each invocation of f (even when called from several threads simultaneously) retrieves a unique value (ignoring wrap-around). -end example ]",
+      "verified": true,
+      "extracted_char_start": 9802,
+      "extracted_char_end": 10032
+    }
+  ]
+}

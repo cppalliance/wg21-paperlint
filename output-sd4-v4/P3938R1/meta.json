@@ -1,0 +1,12 @@
+{
+  "paper": "P3938R1",
+  "title": "Values of floating-point types",
+  "authors": [
+    "Jan Schultke"
+  ],
+  "target_group": "SG6, EWG, CWG",
+  "paper_type": "wording",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3938r1.html",
+  "run_timestamp": "2026-04-21T03:03:30.143297+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

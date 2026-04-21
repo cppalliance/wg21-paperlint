@@ -7,5 +7,4 @@ Answered 1 of 1 applicable questions.
 >     int arr[10];
 >     int* p = arr;       // ERROR: Array decay is disabled
 >     double d = 3.14;
->     int i = (int)d;     // ERROR: C-style cast is disabled
-> }
+> …

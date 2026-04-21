@@ -7,15 +7,4 @@ Answered 1 of 1 applicable questions.
 > 
 > // Full: executor, stop_token, frame allocator, success handler, error handler
 > run_async( ex, st, alloc, h1, h2 )( my_task() );
-> 
-> // Example with handlers
-> run_async(
->     ioc.get_executor(),
->     source.get_token(),
->     [](int result) {
->         std::cout << "Got: " << result << "\n";
->     },
->     [](std::exception_ptr ep) {
->         /* handle error */
->     }
-> )( compute_value() );
+> …

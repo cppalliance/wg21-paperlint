@@ -1,0 +1,13 @@
+{
+  "paper": "P2953R4",
+  "title": "Forbid defaulting operator=(X&&) &&",
+  "authors": [
+    "Matthew Taylor",
+    "Arthur O'Dwyer"
+  ],
+  "target_group": "SG17",
+  "paper_type": "wording",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p2953r4.html",
+  "run_timestamp": "2026-04-21T03:02:19.851234+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

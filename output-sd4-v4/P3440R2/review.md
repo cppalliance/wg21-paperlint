@@ -7,22 +7,4 @@ Answered 1 of 1 applicable questions.
 > {
 > using V = simd::vec<float>;
 > auto count = data.size();
-> 
-> // Process complete SIMD blocks.
-> auto wholeBlocks = count / V::size();
-> for (int i = 0; i < wholeBlocks; ++i)
-> {
->  auto block = simd::unchecked_load<V>(data.subspan(i * V::size()));
->  process(block); // Process an entire simd-worth of data.
-> }
-> 
-> // Process the remainder.
-> auto remainder = count % V::size();
-> if (remainder > 0)
-> {
->  auto remainderBlock = simd::partial_load<V>(data.last(remainder));
->  auto remainderMask = simd::mask_from_count<V>(remainder);
->  process(remainderBlock, remainderMask); // Do the work on part of the SIMD only.
-> }
-> }
-> ```
+> …

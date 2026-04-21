@@ -1,0 +1,41 @@
+{
+  "schema_version": "1",
+  "paperlint_sha": "cb742007da17",
+  "prompt_hash": "6dbb4d244fc5",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p3899r1.html",
+  "pipeline_status": "complete",
+  "paper": "P3899R1",
+  "title": "Clarify the behavior of floating-point overflow",
+  "authors": [
+    "Jan Schultke",
+    "Matthias Kretz"
+  ],
+  "audience": "SG6, EWG, CWG",
+  "paper_type": "wording",
+  "generated": "2026-04-21T03:03:16.829451+00:00",
+  "model": "anthropic/claude-opus-4.6",
+  "applicable_count": 1,
+  "answered_count": 1,
+  "summary": "Answered 1 of 1 applicable questions.",
+  "applicable_answered": [
+    {
+      "question": "Q1",
+      "question_text": "Does the paper show code of the feature it is proposing?",
+      "references": [
+        1
+      ]
+    }
+  ],
+  "applicable_unanswered": [],
+  "not_applicable": [],
+  "references": [
+    {
+      "number": 1,
+      "location": "§6, [expr.pre] replacement wording",
+      "quote": "constexpr std::float32_t min = std::numeric_limits<std::float32_t>::min(); // OK\nconstexpr std::float32_t max = std::numeric_limits<std::float32_t>::max(); // OK\nconstexpr std::float32_t inf = std::numeric_limits<std::float32_t>::infinity(); // OK\nconstexpr std::float32_t nan = std::numeric_limits<std::float32_t>::quiet_NaN(); // OK\n\nconstexpr std::float32_t inf2 = inf * 2; // OK, also positive infinity\nconstexpr std::float32_t zero = min / max; // OK, result cannot be represented, and is rounded to zero\nconstexpr std::float32_t oflo = max * 2; // error: defined, but not a constant expression ([expr.const])\nconstexpr std::float32_t nan2 = nan * 2; // OK: propagating a NaN\nconstexpr std::float32_t udef = inf * 0; // error: result is not mathematically defined\nconstexpr std::float32_t div0 = max / 0; // error: division by zero is undefined ([expr.mul])",
+      "verified": true,
+      "extracted_char_start": 21100,
+      "extracted_char_end": 21962
+    }
+  ]
+}

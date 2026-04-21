@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes a language feature change (forbidding defaulting certain operator= declarations with rvalue ref-qualifiers). The evidence is a code block from \u00a72 showing the proposed syntax/behavior with comments indicating current vs. proposed behavior. This satisfies the evidence rule for Q1 \u2014 a code block showing the proposed syntax or API in use."
+  }
+]

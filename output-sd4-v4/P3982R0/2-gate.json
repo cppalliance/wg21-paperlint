@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes changes to strided_slice (renaming to extent_slice and changing the meaning of its extent member). Section 3.3 provides a code block showing the proposed syntax in use: `auto smd = sumdspan(md, strided_slice{cw<0>, cw<5>, md.extents()[0] / 5})`. This satisfies the evidence rule for Q1 \u2014 a code block showing the proposed feature/syntax in use. The quote appears verbatim at the cited location."
+  }
+]

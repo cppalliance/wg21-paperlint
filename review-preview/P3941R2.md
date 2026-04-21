@@ -7,9 +7,4 @@ Answered 1 of 1 applicable questions.
 > ```
 > affine_on(sndr, sch)
 > ```
-> 
-> the algorithm is used just with the sender:
-> 
-> ```
-> affine_on(sndr)
-> ```
+> …

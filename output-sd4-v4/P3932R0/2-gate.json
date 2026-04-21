@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "REFER",
+    "reason": "The cited code block illustrates a problem with existing behavior (showing a static_assert that 'can fail'), not the proposed new syntax/API. The paper's proposal is expressed through wording changes to the C++ standard (sections 3.2\u20133.9), not through a usage example of the proposed feature. The rubric for Q1 requires 'a code block showing the proposed syntax or API in use.' This code block shows the *problem*, not the *solution*. However, the wording changes do contain code fragments (e.g., the new signature of `cat` using `resize_t` instead of `deduce-abi-t`), which could arguably count. A reasonable reader could disagree on whether this evidence satisfies the rule."
+  }
+]

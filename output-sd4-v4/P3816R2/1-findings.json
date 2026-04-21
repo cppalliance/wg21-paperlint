@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§2 Abstract",
+        "quote": "consteval auto compile_time_function() -> void\n{\nconst auto hasher = consteval_hash<meta::info>{}; // proposed\nconst size_t h = hasher(^^::);\n\n// now possible\nunordered_map<meta::info, int, consteval_hash<meta::info>> m;\nunordered_set<meta::info, consteval_hash<meta::info>> s;\n}",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

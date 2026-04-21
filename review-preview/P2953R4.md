@@ -7,9 +7,4 @@ Answered 1 of 1 applicable questions.
 > // C++26: Well-formed
 > // Proposed: Unusable (deleted or ill-formed)
 > };
-> 
-> struct D {
-> D& operator=(this D&& self, const C&) = default;
-> // C++26: Well-formed
-> // Proposed: Unusable (deleted or ill-formed)
-> };
+> …

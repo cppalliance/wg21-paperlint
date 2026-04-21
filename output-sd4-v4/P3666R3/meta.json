@@ -1,0 +1,12 @@
+{
+  "paper": "P3666R3",
+  "title": "Bit-precise integers",
+  "authors": [
+    "Jan Schultke"
+  ],
+  "target_group": "EWG, LEWG",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3666r3.html",
+  "run_timestamp": "2026-04-21T03:02:49.792486+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

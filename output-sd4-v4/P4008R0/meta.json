@@ -1,0 +1,12 @@
+{
+  "paper": "P4008R0",
+  "title": "Clean Modular Mode: Legacy Opt-out for C++",
+  "authors": [
+    "Zhiyi Lin (\u6797\u5fd7\u9038)"
+  ],
+  "target_group": "Evolution Working Group (EWG)",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p4008r0.pdf",
+  "run_timestamp": "2026-04-21T03:04:33.224197+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

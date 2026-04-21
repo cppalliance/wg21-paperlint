@@ -1,0 +1,12 @@
+{
+  "paper": "P4019R0",
+  "title": "constant_assert",
+  "authors": [
+    "Jonas Persson"
+  ],
+  "target_group": "EWG, EWGI",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p4019r0.pdf",
+  "run_timestamp": "2026-04-21T03:04:54.391668+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

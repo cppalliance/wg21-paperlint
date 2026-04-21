@@ -1,0 +1,12 @@
+{
+  "paper": "P3904R1",
+  "title": "When paths go WTF: making formatting lossless",
+  "authors": [
+    "Victor Zverovich"
+  ],
+  "target_group": "SG16",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3904r1.html",
+  "run_timestamp": "2026-04-21T03:03:18.406313+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

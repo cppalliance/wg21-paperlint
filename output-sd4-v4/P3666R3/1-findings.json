@@ -1,0 +1,16 @@
+[
+  {
+    "question": "Q1",
+    "applicable": true,
+    "answered": true,
+    "evidence": [
+      {
+        "location": "§2.1 C23",
+        "quote": "// 8-bit unsigned integer initialized with value 255.\n// The literal suffix wb is unnecessary in this case.\nunsigned _BitInt(8) x = 0xFFwb;",
+        "verified": false,
+        "extracted_char_start": null,
+        "extracted_char_end": null
+      }
+    ]
+  }
+]

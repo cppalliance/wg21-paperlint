@@ -1,0 +1,7 @@
+[
+  {
+    "question": "Q1",
+    "verdict": "PASS",
+    "reason": "The paper proposes a new consteval broadcast constructor for simd::vec. The evidence quoted from Tony Table 1 in \u00a73 shows a code block demonstrating the proposed syntax/API in use (e.g., `x = 1; // OK`, `pow(x, 3); // OK`, `common_type_t<V, int> y = x; // V`). The quote appears verbatim in the paper. The applicability rule is met (the paper proposes a feature), and the evidence rule is met (a code block showing the proposed feature in use)."
+  }
+]

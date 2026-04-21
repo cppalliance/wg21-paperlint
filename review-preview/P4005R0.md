@@ -7,22 +7,4 @@ Answered 1 of 1 applicable questions.
 > {
 >  f(-42); // entry_cond not met, will not continue to the subsequent code
 >  void(*p)(int) = f;
->  p(-666); // entry_cond not met, will not continue to the subsequent code
-> }
-> 
-> int g(int x) return_cond(r: r >= 0)
-> {
->  if (x == 42)
->  return 666; // OK
->  else
->  return -1; // return_cond not met, will not continue to the subsequent code
->  if (x >= 0)
->  return x; // OK
->  else
->  return x; // return_cond not met, will not continue to the subsequent code
-> }
-> 
-> void h(int x)
-> {
->  mandatory_assert(x >= 0); // will not continue to the subsequent code if x is negative
-> }
+> …

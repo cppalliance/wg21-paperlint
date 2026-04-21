@@ -1,0 +1,12 @@
+{
+  "paper": "N5035",
+  "title": "2026-03 WG21 admin telecon",
+  "authors": [
+    "Guy Davidson"
+  ],
+  "target_group": "WG21",
+  "paper_type": "informational",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/n5035.pdf",
+  "run_timestamp": "2026-04-21T03:02:28.706952+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}

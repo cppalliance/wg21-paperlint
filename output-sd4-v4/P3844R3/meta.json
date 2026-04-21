@@ -1,0 +1,12 @@
+{
+  "paper": "P3844R3",
+  "title": "Restore simd::vec broadcast from int",
+  "authors": [
+    "Matthias Kretz"
+  ],
+  "target_group": "LWG",
+  "paper_type": "proposal",
+  "source_file": "/Users/sergio/sentientsergio/paperlint-public/.paperlint_cache/p3844r3.pdf",
+  "run_timestamp": "2026-04-21T03:05:09.661071+00:00",
+  "model": "anthropic/claude-opus-4.6"
+}
