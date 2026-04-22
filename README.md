@@ -21,9 +21,12 @@ For a detailed description of the pipeline architecture, models, and output sche
 
 ## Installation
 
+Python 3.12 or newer is required. Paperlint bundles its PDF/HTML-to-markdown converter (`tomd`) as a sibling package in this repository; install it as an editable dependency.
+
 ```bash
 git clone https://github.com/cppalliance/paperlint.git
 cd paperlint
+pip install -e ./tomd
 pip install -e .
 ```
 
@@ -31,39 +34,54 @@ pip install -e .
 
 Paperlint treats the open-std.org mailing index as authoritative for paper metadata (title, authors, audience, paper_type, canonical URL). Every invocation names the mailing explicitly.
 
-Evaluate a single paper (mailing-id + paper-id):
-
-```bash
-python -m paperlint eval 2026-02/P3642R4 --output-dir ./output/
-```
-
-Evaluate an entire mailing:
-
-```bash
-python -m paperlint run 2026-02 --output-dir ./data/ --max-cap 50 --max-workers 10
-```
+`--output-dir` is the JSON-storage root: every command writes a per-paper directory plus a `mailings/<mailing-id>.json` index underneath it.
 
 Fetch and persist a mailing index (ground-truth paper metadata from open-std.org):
 
 ```bash
-python -m paperlint mailing 2026-02
+python -m paperlint mailing 2026-02 --output-dir ./data/
+```
+
+Convert all papers in a mailing to markdown — no AI evaluation:
+
+```bash
+python -m paperlint convert 2026-02 --output-dir ./data/ --max-cap 50 --max-workers 10
+```
+
+Evaluate a single paper (mailing-id + paper-id):
+
+```bash
+python -m paperlint eval 2026-02/P3642R4 --output-dir ./data/
+```
+
+Evaluate every paper in a mailing (full pipeline, AI included):
+
+```bash
+python -m paperlint run 2026-02 --output-dir ./data/ --max-cap 50 --max-workers 10
 ```
 
 Bare paper-ids (`eval P3642R4`) and local file paths (`eval ./paper.pdf`) are not accepted — the caller must name the mailing.
 
 ### Output
 
-Each paper produces a directory with two files:
+Each paper produces a directory with the following files:
 
 ```
 {paper_id}/
   evaluation.json   # findings, references with char offsets, metadata
-  paper.md          # canonical markdown extraction of the source paper
+  paper.md          # markdown conversion of the source paper, with YAML front matter
+  meta.json         # PaperMeta record (title, authors, audience, paper_type, ...)
 ```
 
 The `extracted_char_start` and `extracted_char_end` fields in each reference select the exact evidence text in `paper.md`. This pairing is the contract for front-end citation rendering.
 
-For batch runs, an `index.json` summarizes the mailing with per-committee paper lists and finding counts. A `mailings/{mailing_id}.json` persists the ground-truth paper index scraped from open-std.org.
+`paper.md` is also written by the standalone `convert` command so consumers that only need markdown ingestion can skip the AI pipeline.
+
+For batch runs, an `index.json` summarizes the mailing with per-committee paper lists and finding counts. `mailings/<mailing-id>.json` persists the ground-truth paper index scraped from open-std.org, including the original table cells verbatim under `raw_columns`/`raw_links` so downstream consumers can read columns paperlint does not interpret.
+
+### Storage
+
+All on-disk writes go through `paperlint.storage.StorageBackend`; the default `JsonBackend` writes the layout above. The interface is designed so a database-backed implementation can be added without touching call sites — see [paperlint/storage.py](paperlint/storage.py).
 
 ## Environment
 
@@ -94,11 +112,15 @@ It uses AI (Claude, via the OpenRouter API) to perform the analysis. The AI read
 ```
 paperlint/
   __init__.py
-  __main__.py          # CLI entry point
-  orchestrator.py      # Pipeline implementation
+  __main__.py          # CLI entry point (mailing / convert / eval / run)
+  orchestrator.py      # Top-level pipeline coordination
+  pipeline.py          # Discovery / verify / gate / summary steps
+  llm.py               # OpenRouter client + retry/parsing helpers
+  models.py            # Dataclasses (Evidence, Finding, GatedFinding, PaperMeta)
+  extract.py           # tomd-backed paper-to-markdown wrapper + metadata fallback
+  mailing.py           # WG21 open-std.org mailing page scraper
+  storage.py           # StorageBackend ABC + JsonBackend
   credentials.py       # API key validation
-  extract.py           # HTML/PDF text extraction
-  mailing.py           # WG21 mailing page scraper
   rubric.md            # 30 failure modes across 4 axes
   prompts/
     1-discovery.md     # "Find every defect"
@@ -106,6 +128,7 @@ paperlint/
     3-evaluation-writer.md  # "State what was found"
   docs/
     design.md          # Pipeline architecture and output schema
+tomd/                  # Bundled PDF/HTML to markdown converter
 ```
 
 ## License

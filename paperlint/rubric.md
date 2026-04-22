@@ -731,6 +731,3 @@ R0 first drafts to R19 mature revisions.
 3. Wave 2: Gap-targeted analysis of 4 additional papers (~38 findings)
 4. Taxonomy: Bottom-up clustering into 28 categories across 4 axes
 5. Top-down completeness check: 8 anticipated categories added
-
-See `rubric/taxonomy.md` for the full taxonomy with specimen counts
-and `rubric/harvest.md` for the raw finding catalog.

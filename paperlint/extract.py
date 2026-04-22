@@ -7,240 +7,167 @@
 # Official repository: https://github.com/cppalliance/paperlint
 #
 
-"""Text extraction from WG21 paper HTML and PDF files.
+"""Paper-to-markdown extraction wrapper around ``tomd``.
 
-Provides clean text for Sonnet metadata extraction. Discovery gets the raw
-source (HTML/PDF bytes) directly via the Citations API — this module is only
-used for the metadata step.
+`extract_text` is the single entry point used by the pipeline (`step_metadata`
+in `paperlint.pipeline`) and by `convert_one_paper` in the orchestrator. It
+dispatches by file suffix to ``tomd.lib.pdf.convert_pdf`` or
+``tomd.lib.html.convert_html``, optionally enriches the resulting markdown's
+YAML front matter with fields from the scraped mailing metadata
+(`_apply_metadata_fallback`), strips residual table-of-contents blocks as a
+safety net, and raises ``RuntimeError`` when tomd returns no usable markdown.
 """
 
 from __future__ import annotations
 
-import html as html_mod
 import re
-from html.parser import HTMLParser
+import sys
+from pathlib import Path
 
+from tomd.lib.html import convert_html
+from tomd.lib.pdf import convert_pdf
 
-class _PaperContentExtractor(HTMLParser):
-    """Extract readable content from WG21 paper HTML.
-
-    Preserves:
-    - All text content
-    - Code blocks verbatim (content inside <code>, <pre>)
-    - Diff notation as markers: <<+inserted text+>> <<-deleted text->>
-    - Section structure via headings
-
-    Strips:
-    - All HTML tags (but keeps their text content)
-    - Style blocks, script blocks
-    - Navigation/metadata chrome
-    """
-
-    def __init__(self):
-        super().__init__()
-        self.output: list[str] = []
-        self.skip_stack: list[str] = []
-        self.in_code = 0
-        self.in_diff_add = 0
-        self.in_diff_del = 0
-        self.in_style = False
-        self.in_script = False
-        self.in_head = False
-        self.last_was_block = False
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]):
-        attr_dict = dict(attrs)
-        classes = (attr_dict.get("class") or "").split()
-
-        if tag == "head":
-            self.in_head = True
-            return
-        if tag == "body":
-            self.in_head = False
-        if tag == "style":
-            self.in_style = True
-            return
-        if tag == "script":
-            self.in_script = True
-            return
-
-        if self.in_head or self.in_style or self.in_script:
-            return
-
-        if tag in ("code", "pre"):
-            if self.in_code == 0 and tag == "pre":
-                self.output.append("\n```\n")
-            self.in_code += 1
-            return
-
-        if tag == "ins" or "add" in classes:
-            self.in_diff_add += 1
-            self.output.append("\u00ab+")
-            return
-        if tag == "del" or "rm" in classes:
-            self.in_diff_del += 1
-            self.output.append("\u00ab-")
-            return
-
-        if tag in ("p", "div", "li", "tr", "blockquote", "section", "article"):
-            if not self.last_was_block:
-                self.output.append("\n")
-                self.last_was_block = True
-
-        if tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
-            level = int(tag[1])
-            self.output.append(f"\n{'#' * level} ")
-            self.last_was_block = True
-
-    def handle_endtag(self, tag: str):
-        if tag == "head":
-            self.in_head = False
-            return
-        if tag == "style":
-            self.in_style = False
-            return
-        if tag == "script":
-            self.in_script = False
-            return
-
-        if self.in_head or self.in_style or self.in_script:
-            return
-
-        if tag in ("code", "pre"):
-            self.in_code = max(0, self.in_code - 1)
-            if self.in_code == 0 and tag == "pre":
-                self.output.append("\n```\n")
-            return
-
-        if tag == "ins" or (tag == "span" and self.in_diff_add > 0):
-            self.in_diff_add = max(0, self.in_diff_add - 1)
-            self.output.append("+\u00bb")
-            return
-        if tag == "del" or (tag == "span" and self.in_diff_del > 0):
-            self.in_diff_del = max(0, self.in_diff_del - 1)
-            self.output.append("-\u00bb")
-            return
-
-        if tag in ("p", "div", "li", "tr", "blockquote", "section", "article"):
-            self.output.append("\n")
-            self.last_was_block = True
-
-        if tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
-            self.output.append("\n")
-            self.last_was_block = True
-
-    def handle_data(self, data: str):
-        if self.in_head or self.in_style or self.in_script:
-            return
-
-        if self.in_code > 0:
-            self.output.append(data)
-        else:
-            text = re.sub(r"[ \t]+", " ", data)
-            if text.strip():
-                self.last_was_block = False
-            self.output.append(text)
-
-    def handle_entityref(self, name: str):
-        if self.in_head or self.in_style or self.in_script:
-            return
-        entity_map = {"lt": "<", "gt": ">", "amp": "&", "quot": '"', "apos": "'"}
-        self.output.append(entity_map.get(name, f"&{name};"))
-
-    def handle_charref(self, name: str):
-        if self.in_head or self.in_style or self.in_script:
-            return
-        try:
-            if name.startswith("x"):
-                self.output.append(chr(int(name[1:], 16)))
-            else:
-                self.output.append(chr(int(name)))
-        except (ValueError, OverflowError):
-            self.output.append(f"&#{name};")
-
-    def get_text(self) -> str:
-        raw = "".join(self.output)
-        cleaned = re.sub(r"\n{3,}", "\n\n", raw)
-        cleaned = re.sub(r" +\n", "\n", cleaned)
-        cleaned = re.sub(r"\n +", "\n", cleaned)
-
-        parts = cleaned.split("```")
-        for i in range(0, len(parts), 2):
-            if i < len(parts):
-                parts[i] = re.sub(r" {2,}", " ", parts[i])
-        cleaned = "```".join(parts)
-
-        return cleaned.strip()
-
-
-_DIFF_DEL_RE = re.compile(r'\u00ab-.*?-\u00bb', re.DOTALL)
-_DIFF_INS_RE = re.compile(r'\u00ab\+(.*?)\+\u00bb', re.DOTALL)
+# Strip dot-leader TOC blocks; refuse overly large matches (not a real TOC).
+_TOC_MAX_LINES = 300
 _TOC_RE = re.compile(
-    r'(?:^|\n)'
-    r'(?:#{1,3}\s*)?'
-    r'(?:Table of )?Contents\s*\n'
-    r'.*?'
-    r'(?=\n#{1,3}\s)',
+    r"(?m)^(?:#{1,3}\s*)?(?:Table of )?Contents\s*$\r?\n?"
+    r"(.*?)"
+    r"(?=\r?\n#{1,3}\s|\Z)",
     re.DOTALL | re.IGNORECASE,
 )
 
+# Mailing-metadata key -> YAML front-matter key produced by tomd.
+# tomd writes `title`, `document`, `date`, `audience`, `reply-to`; paperlint
+# adds the rest under their natural names so downstream consumers can read
+# them without needing to know which side wrote them.
+_FALLBACK_KEY_MAP = {
+    "title": "title",
+    "paper_id": "document",
+    "document_date": "date",
+    "subgroup": "audience",
+    "authors": "reply-to",
+    "paper_type": "paper-type",
+}
 
-def _resolve_diff_markers(text: str) -> str:
-    """Resolve diff notation to post-edit state: keep insertions, drop deletions."""
-    text = _DIFF_DEL_RE.sub('', text)
-    text = _DIFF_INS_RE.sub(r'\1', text)
-    text = re.sub(r' {2,}', ' ', text)
-    return text
+_FRONT_MATTER_RE = re.compile(
+    r"\A---\s*\n(?P<body>.*?)\n---\s*\n?", re.DOTALL
+)
 
 
-def extract_html(path: str) -> str:
-    """Extract clean text from an HTML paper."""
-    with open(path, encoding="utf-8", errors="replace") as f:
-        html = f.read()
-    extractor = _PaperContentExtractor()
-    extractor.feed(html)
-    text = extractor.get_text()
-    return _resolve_diff_markers(text)
-
-
-def extract_pdf(path: str) -> str:
-    """Extract clean text from a PDF paper.
-
-    Tries docling (ML-based, preserves document structure) first,
-    falls back to pymupdf (raw text dump).
-    Credit: fallback pattern from cppdigest/wg21-paper-markdown-converter.
-    """
-    try:
-        from docling.document_converter import DocumentConverter
-        converter = DocumentConverter()
-        result = converter.convert(path)
-        md = result.document.export_to_markdown()
-        if md and len(md.strip()) > 100:
-            return html_mod.unescape(md)
-    except Exception as e:
-        import sys
-        print(f"WARNING: docling failed for {path}, falling back to pymupdf: {e}",
-              file=sys.stderr)
-    import pymupdf
-    with pymupdf.open(path) as doc:
-        text = "\n".join(page.get_text() for page in doc)
-    text = re.sub(r'(\w)-\n(\w)', r'\1-\2', text)
-    return html_mod.unescape(text)
+def _strip_toc_replace(m: re.Match[str]) -> str:
+    span = m.group(0)
+    if span.count("\n") > _TOC_MAX_LINES:
+        return span
+    return "\n"
 
 
 def _strip_toc(text: str) -> str:
     """Remove Table of Contents sections that produce phantom findings."""
-    return _TOC_RE.sub('\n', text)
+    return _TOC_RE.sub(_strip_toc_replace, text)
 
 
-def extract_text(path: str) -> str:
-    """Extract clean text from a paper (HTML or PDF).
+def _yaml_escape(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
 
-    Dispatches by file extension. Returns clean text suitable for
-    metadata extraction. Discovery gets the raw source instead.
+
+def _format_yaml_value(key: str, val) -> str:
+    if isinstance(val, list):
+        items = "\n".join(f'  - "{_yaml_escape(str(v))}"' for v in val)
+        return f"{key}:\n{items}"
+    s = str(val)
+    if any(c in s for c in ':{}[]#&*?|>!%@`"\'\n\\'):
+        return f'{key}: "{_yaml_escape(s)}"'
+    return f"{key}: {s}"
+
+
+def _present_keys(front_matter_body: str) -> set[str]:
+    """Return the set of top-level keys already present in a YAML body."""
+    keys: set[str] = set()
+    for line in front_matter_body.splitlines():
+        if not line or line.startswith((" ", "\t", "-", "#")):
+            continue
+        head, sep, _ = line.partition(":")
+        if sep:
+            keys.add(head.strip())
+    return keys
+
+
+def _apply_metadata_fallback(md: str, mailing_meta: dict | None) -> str:
+    """Inject any missing YAML front-matter fields from ``mailing_meta``.
+
+    If the markdown has no front matter, a fresh block is prepended. If a
+    block exists, only fields that are absent from it are added; fields
+    already produced by tomd from the source paper win, satisfying the
+    directive's "if missing, copy from scraped mailing metadata" rule.
     """
-    if path.lower().endswith(".pdf"):
-        text = extract_pdf(path)
+    if not mailing_meta:
+        return md
+
+    match = _FRONT_MATTER_RE.match(md)
+    if match:
+        body = match.group("body")
+        present = _present_keys(body)
+        rest = md[match.end():]
     else:
-        text = extract_html(path)
-    return _strip_toc(text)
+        body = ""
+        present = set()
+        rest = md
+
+    additions: list[str] = []
+    for src_key, yaml_key in _FALLBACK_KEY_MAP.items():
+        if yaml_key in present:
+            continue
+        val = mailing_meta.get(src_key)
+        if val in (None, "", []):
+            continue
+        additions.append(_format_yaml_value(yaml_key, val))
+
+    if not additions and match:
+        return md
+
+    new_body_lines = [body.rstrip()] if body.strip() else []
+    new_body_lines.extend(additions)
+    new_body = "\n".join(line for line in new_body_lines if line)
+
+    if new_body:
+        return f"---\n{new_body}\n---\n\n{rest.lstrip()}"
+    return md
+
+
+def _convert_with_tomd(path: Path) -> tuple[str, str | None]:
+    """Dispatch to the appropriate tomd converter by file suffix."""
+    suffix = path.suffix.lower()
+    if suffix == ".pdf":
+        return convert_pdf(path)
+    if suffix in (".html", ".htm"):
+        return convert_html(path)
+    return convert_html(path)
+
+
+def extract_text(path: str, mailing_meta: dict | None = None) -> str:
+    """Convert a paper to clean markdown via tomd.
+
+    ``mailing_meta`` (optional): the scraped open-std.org mailing index entry
+    for this paper. When provided, fills in YAML front-matter fields that
+    tomd could not extract from the source.
+
+    Raises ``RuntimeError`` when tomd produces no usable markdown so the
+    orchestrator's failure path records a ``pipeline_status = "failed"``.
+    """
+    p = Path(path)
+    md, prompts = _convert_with_tomd(p)
+
+    if prompts:
+        print(
+            f"paperlint [extract] tomd issues for {p.name}:\n{prompts}",
+            file=sys.stderr,
+        )
+
+    if not md or not md.strip():
+        raise RuntimeError(
+            f"tomd produced empty markdown for {p} (slide deck, "
+            f"standards draft, or unreadable PDF)."
+        )
+
+    md = _apply_metadata_fallback(md, mailing_meta)
+    return _strip_toc(md)

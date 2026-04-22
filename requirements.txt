@@ -1,6 +1,8 @@
 openai
 python-dotenv
 beautifulsoup4
-docling
-pymupdf
 requests
+# tomd is bundled in this repo; install with:
+#   pip install -e ./tomd
+# (transitive deps: pymupdf, mistune, beautifulsoup4)
+-e ./tomd

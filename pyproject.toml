@@ -2,7 +2,7 @@
 name = "paperlint"
 version = "0.1.0"
 description = "WG21 C++ standards paper evaluation pipeline"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = {text = "BSL-1.0"}
 authors = [{name = "Sergio DuBois", email = "sentientsergio@gmail.com"}]
 
@@ -10,9 +10,13 @@ dependencies = [
     "openai",
     "python-dotenv",
     "beautifulsoup4",
-    "pymupdf",
     "requests",
-    "docling",
+    "tomd",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest~=8.0",
 ]
 
 [project.scripts]
@@ -21,3 +25,6 @@ paperlint = "paperlint.__main__:main"
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.uv.sources]
+tomd = { path = "tomd", editable = true }

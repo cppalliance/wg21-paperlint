@@ -33,7 +33,7 @@ from pathlib import Path
 _REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO))
 
-from paperlint.orchestrator import Evidence, Finding, GatedFinding, PaperMeta
+from paperlint.models import Evidence, Finding, GatedFinding, PaperMeta
 from paperlint.suppress import (
     _is_bracketed_identifier_layout_wrap,
     _is_intra_word_spacing,

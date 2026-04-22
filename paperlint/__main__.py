@@ -10,13 +10,19 @@
 """Paperlint CLI — evaluate WG21 papers for mechanically verifiable defects.
 
 Usage:
-    python -m paperlint eval 2026-02/P3642R4 --output-dir ./output/
+    python -m paperlint mailing 2026-02 --output-dir ./data/
+    python -m paperlint convert 2026-02 --output-dir ./data/ --max-cap 50 --max-workers 10
+    python -m paperlint eval 2026-02/P3642R4 --output-dir ./data/
     python -m paperlint run 2026-02 --output-dir ./data/ --max-cap 50 --max-workers 10
 
 The open-std.org mailing index is authoritative for paper metadata (title,
 authors, audience, paper_type, canonical URL). Every `eval` invocation names
 the mailing and the paper id explicitly; local file paths and bare paper ids
 are not accepted.
+
+`--output-dir` is the JSON-backend root: paperlint writes a per-paper directory
+plus `mailings/<mailing-id>.json` underneath it. This is the only on-disk
+backend today; a Postgres backend may be added later via the storage API.
 """
 
 import argparse
@@ -29,35 +35,23 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
-from paperlint.orchestrator import run_paper_eval, git_sha, prompt_hash, SCHEMA_VERSION
+from paperlint.models import SCHEMA_VERSION
+from paperlint.orchestrator import (
+    convert_one_paper,
+    git_sha,
+    prompt_hash,
+    run_paper_eval,
+)
+from paperlint.storage import JsonBackend
 
 
-def _persist_mailing_index(papers: list[dict], index_path: Path) -> list[dict]:
-    """Merge-persist a mailing index: keeps existing entries with their
-    original added dates, appends new papers with current timestamp."""
-    existing_by_id = {}
-    if index_path.exists():
-        for entry in json.loads(index_path.read_text()):
-            existing_by_id[entry["paper_id"]] = entry
+def _backend_for(output_dir: Path) -> JsonBackend:
+    """Construct the default JSON storage backend rooted at ``output_dir``.
 
-    now = datetime.now(timezone.utc).isoformat()
-    merged = []
-    new_count = 0
-    for p in papers:
-        if p["paper_id"] in existing_by_id:
-            merged.append(existing_by_id[p["paper_id"]])
-        else:
-            p["added"] = now
-            merged.append(p)
-            new_count += 1
-    merged.sort(key=lambda e: e["paper_id"])
-
-    index_path.parent.mkdir(parents=True, exist_ok=True)
-    index_path.write_text(
-        json.dumps(merged, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-    print(f"Mailing index: {index_path} ({len(merged)} papers, {new_count} new)")
-    return merged
+    Centralized here so a future ``--storage postgres://...`` flag can be
+    added in one place without touching every CLI command.
+    """
+    return JsonBackend(output_dir)
 
 
 def _eval_one_paper(paper_ref: str, output_dir: Path, source_url: str = "",
@@ -71,9 +65,52 @@ def _eval_one_paper(paper_ref: str, output_dir: Path, source_url: str = "",
         return {"paper": paper_ref, "status": "error", "error": str(e)}
 
 
+def _convert_one(paper_ref: str, output_dir: Path, source_url: str,
+                 mailing_meta: dict) -> dict:
+    try:
+        result = convert_one_paper(
+            paper_ref,
+            output_dir=output_dir,
+            source_url=source_url,
+            mailing_meta=mailing_meta,
+        )
+        return {
+            "paper": paper_ref,
+            "status": "ok",
+            "paper_md": str(result["paper_md_path"]),
+            "meta_path": str(result["meta_path"]),
+        }
+    except Exception as e:
+        traceback.print_exc()
+        return {"paper": paper_ref, "status": "error", "error": str(e)}
+
+
+def _failure_entry(r: dict) -> dict:
+    if r["status"] == "error":
+        return {"paper": r["paper"], "error": r.get("error", "")}
+    res = r.get("result") or {}
+    return {
+        "paper": res.get("paper", r["paper"]),
+        "pipeline_status": res.get("pipeline_status"),
+        "summary": res.get("summary", ""),
+    }
+
+
 def _build_index(output_dir: Path, mailing_id: str, results: list[dict]) -> dict:
-    succeeded = [r for r in results if r["status"] == "ok" and r.get("result")]
-    failed = [r for r in results if r["status"] == "error"]
+    succeeded = [
+        r for r in results
+        if r["status"] == "ok"
+        and r.get("result", {}).get("pipeline_status") == "complete"
+    ]
+    failed = [
+        r for r in results
+        if r["status"] == "error"
+        or r.get("result", {}).get("pipeline_status") in ("failed", "partial")
+    ]
+    partial_count = sum(
+        1 for r in results
+        if r.get("result", {}).get("pipeline_status") == "partial"
+    )
 
     rooms: dict[str, dict] = defaultdict(lambda: {"papers": [], "total_findings": 0})
     papers_summary = []
@@ -106,12 +143,13 @@ def _build_index(output_dir: Path, mailing_id: str, results: list[dict]) -> dict
         "total_papers": len(results),
         "succeeded": len(succeeded),
         "failed": len(failed),
+        "partial": partial_count,
         "rooms": {k: dict(v) for k, v in sorted(rooms.items())},
         "papers": sorted(papers_summary, key=lambda p: p.get("findings_passed", 0)),
     }
 
     if failed:
-        index["failed_papers"] = [{"paper": r["paper"], "error": r.get("error", "")} for r in failed]
+        index["failed_papers"] = [_failure_entry(r) for r in failed]
 
     return index
 
@@ -152,8 +190,8 @@ def cmd_eval(args: argparse.Namespace) -> int:
         print(f"No papers found for mailing {mailing_id}", file=sys.stderr)
         return 1
 
-    index_path = output_dir.parent / "mailings" / f"{mailing_id}.json"
-    merged = _persist_mailing_index(papers, index_path)
+    backend = _backend_for(output_dir)
+    merged = backend.upsert_mailing_index(mailing_id, papers)
 
     meta = next((p for p in merged if p["paper_id"].lower() == paper_id.lower()), None)
     if not meta:
@@ -198,9 +236,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"No papers found for mailing {mailing_id}", file=sys.stderr)
         return 1
 
-    # Persist mailing index as ground-truth record
-    index_path = output_dir.parent / "mailings" / f"{mailing_id}.json"
-    merged = _persist_mailing_index(papers, index_path)
+    backend = _backend_for(output_dir)
+    merged = backend.upsert_mailing_index(mailing_id, papers)
 
     meta_by_id = {p["paper_id"]: p for p in merged}
 
@@ -256,12 +293,85 @@ def cmd_run(args: argparse.Namespace) -> int:
     return 0 if failed == 0 else 1
 
 
+def cmd_convert(args: argparse.Namespace) -> int:
+    """Fetch and convert all papers in a mailing to markdown — no AI eval.
+
+    This is the standalone ingestion path: it satisfies directives 6 and 8
+    by writing ``paper.md`` + ``meta.json`` per paper plus a fresh mailing
+    index, with no LLM calls. The AI evaluation pipeline is opt-in via the
+    ``run`` (or ``eval``) subcommand.
+    """
+    from paperlint.mailing import fetch_papers_for_mailing
+
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    mailing_id = args.mailing_id
+    max_cap = args.max_cap
+    max_workers = args.max_workers
+
+    print(f"Fetching paper list for mailing {mailing_id}...")
+    papers = fetch_papers_for_mailing(mailing_id)
+    if not papers:
+        print(f"No papers found for mailing {mailing_id}", file=sys.stderr)
+        return 1
+
+    backend = _backend_for(output_dir)
+    merged = backend.upsert_mailing_index(mailing_id, papers)
+
+    meta_by_id = {p["paper_id"]: p for p in merged}
+
+    if max_cap > 0:
+        papers = papers[:max_cap]
+
+    print(f"Converting {len(papers)} papers with {max_workers} workers...")
+
+    results: list[dict] = []
+    if max_workers == 1:
+        for p in papers:
+            pid = p["paper_id"]
+            pm = meta_by_id.get(pid)
+            r = _convert_one(pid, output_dir, pm["url"] if pm else "", pm)
+            results.append(r)
+            status = "OK" if r["status"] == "ok" else "FAILED"
+            print(f"\n  [{status}] {pid}")
+    else:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {}
+            for p in papers:
+                pid = p["paper_id"]
+                pm = meta_by_id.get(pid)
+                f = executor.submit(
+                    _convert_one, pid, output_dir, pm["url"] if pm else "", pm,
+                )
+                futures[f] = pid
+            for future in as_completed(futures):
+                pid = futures[future]
+                r = future.result()
+                results.append(r)
+                status = "OK" if r["status"] == "ok" else "FAILED"
+                print(f"\n  [{status}] {pid}")
+
+    succeeded = sum(1 for r in results if r["status"] == "ok")
+    failed = len(results) - succeeded
+    print(f"\n{'=' * 60}")
+    print(f"Convert {mailing_id} complete: {succeeded}/{len(results)} succeeded, {failed} failed")
+    print(f"{'=' * 60}")
+    return 0 if failed == 0 else 1
+
+
 def cmd_mailing(args: argparse.Namespace) -> int:
-    """Fetch and persist the ground-truth mailing index."""
+    """Fetch and persist the ground-truth mailing index.
+
+    Writes ``<output-dir>/mailings/<mailing-id>.json``. Idempotent: re-running
+    keeps existing entries (and their original ``added`` timestamps) and
+    appends only newly listed papers.
+    """
     from paperlint.mailing import fetch_papers_for_mailing
 
     mailing_id = args.mailing_id
-    output = Path(args.output)
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Fetching mailing index for {mailing_id} from open-std.org...")
     papers = fetch_papers_for_mailing(mailing_id)
@@ -269,7 +379,8 @@ def cmd_mailing(args: argparse.Namespace) -> int:
         print(f"No papers found for mailing {mailing_id}", file=sys.stderr)
         return 1
 
-    _persist_mailing_index(papers, output)
+    backend = _backend_for(output_dir)
+    backend.upsert_mailing_index(mailing_id, papers)
     return 0
 
 
@@ -297,21 +408,31 @@ def main() -> int:
     run_parser.add_argument("--max-workers", type=int, default=10, help="Parallel workers")
     run_parser.add_argument("--max-processes", type=int, default=None, help=argparse.SUPPRESS)
 
+    convert_parser = subparsers.add_parser(
+        "convert",
+        help="Fetch and convert all papers in a mailing to markdown (no AI eval)",
+    )
+    convert_parser.add_argument("mailing_id", help="Mailing identifier (e.g. 2026-02)")
+    convert_parser.add_argument("--output-dir", required=True, help="Output directory")
+    convert_parser.add_argument("--max-cap", type=int, default=0, help="Max papers (0 = all)")
+    convert_parser.add_argument("--max-workers", type=int, default=10, help="Parallel workers")
+
     mailing_parser = subparsers.add_parser("mailing", help="Fetch and persist a mailing index")
     mailing_parser.add_argument("mailing_id", help="Mailing identifier (e.g. 2026-02)")
-    mailing_parser.add_argument("--output", default="mailings/{mailing_id}.json",
-                                help="Output path (default: mailings/{mailing_id}.json)")
+    mailing_parser.add_argument(
+        "--output-dir",
+        required=True,
+        help="Output directory; mailing JSON is written to <output-dir>/mailings/<id>.json",
+    )
 
     args = parser.parse_args()
-
-    if args.command == "mailing":
-        if "{mailing_id}" in args.output:
-            args.output = args.output.replace("{mailing_id}", args.mailing_id)
 
     if args.command == "eval":
         return cmd_eval(args)
     elif args.command == "run":
         return cmd_run(args)
+    elif args.command == "convert":
+        return cmd_convert(args)
     elif args.command == "mailing":
         return cmd_mailing(args)
     else:
