@@ -54,11 +54,22 @@ def _backend_for(output_dir: Path) -> JsonBackend:
     return JsonBackend(output_dir)
 
 
-def _eval_one_paper(paper_ref: str, output_dir: Path, source_url: str = "",
-                    mailing_meta: dict | None = None) -> dict:
+def _eval_one_paper(
+    paper_ref: str,
+    output_dir: Path,
+    source_url: str = "",
+    mailing_meta: dict | None = None,
+    *,
+    discovery_passes: int = 3,
+) -> dict:
     try:
-        result = run_paper_eval(paper_ref, output_dir=output_dir,
-                                source_url=source_url, mailing_meta=mailing_meta)
+        result = run_paper_eval(
+            paper_ref,
+            output_dir=output_dir,
+            source_url=source_url,
+            mailing_meta=mailing_meta,
+            discovery_passes=discovery_passes,
+        )
         return {"paper": paper_ref, "status": "ok", "result": result}
     except Exception as e:
         traceback.print_exc()
@@ -208,6 +219,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
             output_dir=output_dir,
             source_url=meta.get("url", ""),
             mailing_meta=meta,
+            discovery_passes=args.discovery_passes,
         )
         return 0
     except FileNotFoundError as e:
@@ -252,9 +264,13 @@ def cmd_run(args: argparse.Namespace) -> int:
         for p in papers:
             pid = p["paper_id"]
             pm = meta_by_id.get(pid)
-            result = _eval_one_paper(pid, output_dir,
-                                     source_url=pm["url"] if pm else "",
-                                     mailing_meta=pm)
+            result = _eval_one_paper(
+                pid,
+                output_dir,
+                source_url=pm["url"] if pm else "",
+                mailing_meta=pm,
+                discovery_passes=args.discovery_passes,
+            )
             results.append(result)
             status = "OK" if result["status"] == "ok" else "FAILED"
             print(f"\n  [{status}] {pid}")
@@ -265,9 +281,12 @@ def cmd_run(args: argparse.Namespace) -> int:
                 pid = p["paper_id"]
                 pm = meta_by_id.get(pid)
                 f = executor.submit(
-                    _eval_one_paper, pid, output_dir,
+                    _eval_one_paper,
+                    pid,
+                    output_dir,
                     pm["url"] if pm else "",
                     pm,
+                    discovery_passes=args.discovery_passes,
                 )
                 futures[f] = pid
             for future in as_completed(futures):
@@ -400,6 +419,15 @@ def main() -> int:
         help="Paper reference in <mailing-id>/<paper-id> form (e.g. 2026-02/P3642R4)",
     )
     eval_parser.add_argument("--output-dir", required=True, help="Output directory")
+    eval_parser.add_argument(
+        "--discovery-passes",
+        type=int,
+        default=3,
+        help=(
+            "Number of LLM discovery passes (default: 3). Each pass after the first is "
+            "shown prior findings and asked to add only new ones."
+        ),
+    )
 
     run_parser = subparsers.add_parser("run", help="Evaluate all papers in a mailing")
     run_parser.add_argument("mailing_id", help="Mailing identifier (e.g. 2026-02)")
@@ -407,6 +435,15 @@ def main() -> int:
     run_parser.add_argument("--max-cap", type=int, default=0, help="Max papers (0 = all)")
     run_parser.add_argument("--max-workers", type=int, default=10, help="Parallel workers")
     run_parser.add_argument("--max-processes", type=int, default=None, help=argparse.SUPPRESS)
+    run_parser.add_argument(
+        "--discovery-passes",
+        type=int,
+        default=3,
+        help=(
+            "Number of LLM discovery passes (default: 3). Each pass after the first is "
+            "shown prior findings and asked to add only new ones."
+        ),
+    )
 
     convert_parser = subparsers.add_parser(
         "convert",

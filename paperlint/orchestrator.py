@@ -177,6 +177,7 @@ def run_paper_eval(
     source_url: str = "",
     mailing_meta: dict | None = None,
     storage: StorageBackend | None = None,
+    discovery_passes: int = 3,
 ) -> dict:
     """Evaluate one paper. Always writes an evaluation.json, even on failure.
 
@@ -215,7 +216,9 @@ def run_paper_eval(
 
     # Step 1: Discovery → Quote verification → Gate
     try:
-        findings = step_discovery(client, clean_text, meta)
+        findings = step_discovery(
+            client, clean_text, meta, passes=discovery_passes
+        )
         raw_discovered = len(findings)
 
         findings_path = backend.write_intermediate(

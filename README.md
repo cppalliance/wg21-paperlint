@@ -10,7 +10,7 @@ Paperlint reads a paper, searches for defects against a rubric of 30 failure mod
 
 The pipeline has four stages:
 
-1. **Discovery** — reads the paper end-to-end, finds every potential defect, outputs structured findings with exact evidence quotes
+1. **Discovery** — reads the paper end-to-end, finds every potential defect, outputs structured findings with exact evidence quotes. By default this runs **three** LLM passes: the first pass is a full scan; each later pass is shown the findings already collected and asked to add only *additional* defects (programmatic dedup merges overlaps). Use `--discovery-passes N` on `eval` and `run` to change the count (minimum 1).
 2. **Quote Verification** — programmatic check that every quoted passage actually exists in the source document. Findings with unverifiable evidence are dropped before reaching the gate.
 3. **Gate** — challenges each finding, searching for reasons the author wrote it that way on purpose. Rejects aggressively. A false positive damages the credibility of every true positive around it.
 4. **Evaluation** — assembles the surviving findings into a per-paper evaluation
@@ -52,12 +52,14 @@ Evaluate a single paper (mailing-id + paper-id):
 
 ```bash
 python -m paperlint eval 2026-02/P3642R4 --output-dir ./data/
+python -m paperlint eval 2026-02/P3642R4 --output-dir ./data/ --discovery-passes 5
 ```
 
 Evaluate every paper in a mailing (full pipeline, AI included):
 
 ```bash
 python -m paperlint run 2026-02 --output-dir ./data/ --max-cap 50 --max-workers 10
+python -m paperlint run 2026-02 --output-dir ./data/ --discovery-passes 1
 ```
 
 Bare paper-ids (`eval P3642R4`) and local file paths (`eval ./paper.pdf`) are not accepted — the caller must name the mailing.

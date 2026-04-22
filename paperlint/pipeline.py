@@ -142,14 +142,8 @@ def step_metadata(paper_path: Path, mailing_meta: dict) -> tuple[str, PaperMeta]
     return clean_text, meta
 
 
-def step_discovery(client: openai.OpenAI, clean_text: str, meta: PaperMeta) -> list[Finding]:
-    """Step 1: Discovery — find defects, output structured JSON with evidence."""
-    print("\n--- Step 1: Discovery (JSON mode + thinking) ---")
-
-    rubric_text = RUBRIC_PATH.read_text(encoding="utf-8")
-    skill_text = (PROMPTS_DIR / "1-discovery.md").read_text(encoding="utf-8")
-
-    json_schema = (
+def _discovery_json_schema() -> str:
+    return (
         "\n\n## Output Format\n\n"
         "Return ONLY a JSON object with this structure:\n"
         '{"findings": [\n'
@@ -172,54 +166,8 @@ def step_discovery(client: openai.OpenAI, clean_text: str, meta: PaperMeta) -> l
         "Return ONLY the JSON."
     )
 
-    system_prompt = f"{skill_text}\n\n---\n\n# Evaluation Rubric\n\n{rubric_text}{json_schema}"
 
-    user_content = (
-        f"<paper title=\"{meta.paper} — {meta.title}\" "
-        f"target_group=\"{meta.target_group}\" "
-        f"authors=\"{', '.join(meta.authors)}\">\n"
-        f"{clean_text}\n"
-        f"</paper>\n\n"
-        f"Analyze this paper for objective defects per the rubric.\n\n"
-        f"IMPORTANT: Return ONLY a valid JSON object. No markdown. No explanation."
-    )
-
-    parsed = None
-    for attempt in range(3):
-        response = call_with_retry(
-            client,
-            "Discovery",
-            model=OPENROUTER_MODEL,
-            max_tokens=MAX_TOKENS["discovery"],
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content},
-            ],
-            extra_body={
-                "thinking": {
-                    "type": "enabled",
-                    "budget_tokens": THINKING_BUDGET["discovery"],
-                },
-            },
-        )
-
-        log_usage("Discovery", response, THINKING_BUDGET["discovery"])
-
-        raw = extract_response_text(response)
-        try:
-            parsed = parse_json(raw, "Discovery")
-            break
-        except json.JSONDecodeError:
-            if attempt < 2:
-                print(
-                    f"  Retrying Discovery (JSON parse failed, attempt {attempt + 2})..."
-                )
-            else:
-                raise
-
-    raw_findings = parsed.get("findings", [])
-
+def _raw_findings_to_objects(raw_findings: list) -> list[Finding]:
     findings: list[Finding] = []
     for rf in raw_findings:
         evidence = [
@@ -237,12 +185,177 @@ def step_discovery(client: openai.OpenAI, clean_text: str, meta: PaperMeta) -> l
                 evidence=evidence,
             )
         )
+    return findings
 
-    print(f"  Findings: {len(findings)}")
-    for f in findings:
+
+def _run_discovery_call(
+    client: openai.OpenAI,
+    *,
+    system_prompt: str,
+    user_content: str,
+    step_label: str,
+) -> list[Finding]:
+    """One LLM discovery call with JSON-parse retries (same as legacy single-pass)."""
+    parsed = None
+    for attempt in range(3):
+        response = call_with_retry(
+            client,
+            step_label,
+            model=OPENROUTER_MODEL,
+            max_tokens=MAX_TOKENS["discovery"],
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ],
+            extra_body={
+                "thinking": {
+                    "type": "enabled",
+                    "budget_tokens": THINKING_BUDGET["discovery"],
+                },
+            },
+        )
+
+        log_usage(step_label, response, THINKING_BUDGET["discovery"])
+
+        raw = extract_response_text(response)
+        try:
+            parsed = parse_json(raw, step_label)
+            break
+        except json.JSONDecodeError:
+            if attempt < 2:
+                print(
+                    f"  Retrying {step_label} (JSON parse failed, attempt {attempt + 2})..."
+                )
+            else:
+                raise
+
+    raw_findings = parsed.get("findings", [])
+    return _raw_findings_to_objects(raw_findings)
+
+
+def _dedup_finding_key(f: Finding) -> tuple[str, str, str]:
+    """Stable signature for deduplicating findings across discovery passes."""
+    cat = f.category.strip().lower()
+    if f.evidence:
+        ev0 = f.evidence[0]
+        loc = ev0.location.strip().lower()
+        q = ev0.quote
+        qnorm = " ".join(q.split())[:120].lower()
+    else:
+        loc = ""
+        qnorm = ""
+    return (cat, loc, qnorm)
+
+
+def _format_prior_findings(prior: list[Finding]) -> str:
+    """User-message block listing defects already found (pass 2+ context)."""
+    lines = [
+        "\n\n## Previously Found Defects (do NOT repeat)\n",
+        "The following defects have already been identified. Do not report them again. "
+        "Find ONLY additional defects you can verify in the paper that are not already "
+        "listed.\n",
+    ]
+    for i, f in enumerate(prior, 1):
+        lines.append(f"### Prior #{i}: {f.title}")
+        lines.append(f"- **Category:** {f.category}")
+        if f.evidence:
+            ev = f.evidence[0]
+            lines.append(f"- **Location:** {ev.location}")
+            excerpt = ev.quote[:200].replace("\n", " ")
+            lines.append(f'- **Quote excerpt:** "{excerpt}"')
+        lines.append("")
+    return "\n".join(lines)
+
+
+def _merge_pass(
+    accumulated: list[Finding], new_findings: list[Finding]
+) -> tuple[list[Finding], int]:
+    """Append findings whose dedup key is not already present. Returns (accumulator, n_new)."""
+    existing_keys = {_dedup_finding_key(f) for f in accumulated}
+    new_added = 0
+    for f in new_findings:
+        k = _dedup_finding_key(f)
+        if k in existing_keys:
+            continue
+        existing_keys.add(k)
+        accumulated.append(f)
+        new_added += 1
+    return accumulated, new_added
+
+
+def step_discovery(
+    client: openai.OpenAI,
+    clean_text: str,
+    meta: PaperMeta,
+    *,
+    passes: int = 3,
+) -> list[Finding]:
+    """Step 1: Discovery — find defects, output structured JSON with evidence.
+
+    When ``passes`` > 1, runs multiple LLM calls. Pass 1 is a full discovery pass;
+    each later pass is shown prior accumulated findings and asked to add only
+    defects not already listed. Results are merged with programmatic dedup on
+    (category, first-evidence location, first-evidence quote prefix), then
+    renumbered 1..N for downstream gate/verification.
+    """
+    if passes < 1:
+        raise ValueError("passes must be >= 1")
+
+    print("\n--- Step 1: Discovery (JSON mode + thinking) ---")
+
+    rubric_text = RUBRIC_PATH.read_text(encoding="utf-8")
+    skill_text = (PROMPTS_DIR / "1-discovery.md").read_text(encoding="utf-8")
+    json_schema = _discovery_json_schema()
+    system_prompt = f"{skill_text}\n\n---\n\n# Evaluation Rubric\n\n{rubric_text}{json_schema}"
+
+    base_user = (
+        f"<paper title=\"{meta.paper} — {meta.title}\" "
+        f"target_group=\"{meta.target_group}\" "
+        f"authors=\"{', '.join(meta.authors)}\">\n"
+        f"{clean_text}\n"
+        f"</paper>\n\n"
+        f"Analyze this paper for objective defects per the rubric.\n\n"
+        f"IMPORTANT: Return ONLY a valid JSON object. No markdown. No explanation."
+    )
+
+    accumulated: list[Finding] = []
+
+    for pass_idx in range(passes):
+        if pass_idx == 0:
+            user_content = base_user
+        else:
+            prior_block = _format_prior_findings(accumulated)
+            directive = (
+                "\n\nThese defects have already been reported. Find ONLY additional "
+                "defects you can verify in the paper that are not already on the list above."
+            )
+            user_content = base_user + prior_block + directive
+
+        step_label = "Discovery" if passes == 1 else f"Discovery pass {pass_idx + 1}/{passes}"
+        batch = _run_discovery_call(
+            client,
+            system_prompt=system_prompt,
+            user_content=user_content,
+            step_label=step_label,
+        )
+        raw_count = len(batch)
+        accumulated, n_new = _merge_pass(accumulated, batch)
+        dupes = raw_count - n_new
+        if passes > 1:
+            print(
+                f"  Pass {pass_idx + 1}/{passes}: {raw_count} found, "
+                f"{n_new} new, {dupes} duplicate(s) vs prior"
+            )
+
+    for i, f in enumerate(accumulated, start=1):
+        f.number = i
+
+    print(f"  Findings: {len(accumulated)}")
+    for f in accumulated:
         print(f"    #{f.number}: {f.title[:60]} ({len(f.evidence)} evidence)")
 
-    return findings
+    return accumulated
 
 
 def step_verify_quotes(findings: list[Finding], source_text: str) -> list[Finding]:

@@ -23,6 +23,14 @@ Step 1: DISCOVERY
   Model: Opus 4.6 via OpenRouter (JSON mode + thinking)
   Input: clean extracted text
   Prompt: prompts/1-discovery.md + rubric.md (+ prompts/**/*.md hashed with rubric)
+  Multi-pass (default 3, CLI `--discovery-passes N`): pass 1 runs a full discovery
+  call. Passes 2..N append a user-message block listing prior findings (category,
+  title, first-evidence location + quote excerpt) and instruct the model to return
+  only *additional* defects. Each pass response is merged into an accumulator;
+  duplicates are dropped using a key on `(category.lower(), first_location.lower(),
+  normalized_first_quote_prefix)` (whitespace-collapsed, lowercased, first 120 chars
+  of the first evidence quote). Final list is renumbered 1..N before quote
+  verification and the gate.
   Output: JSON {findings: [{number, title, category, defect, correction,
           axiom, evidence: [{location, quote}]}]}
   │
