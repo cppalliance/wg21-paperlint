@@ -49,7 +49,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from paperlint.orchestrator import Finding, GatedFinding, PaperMeta
+    from paperlint.models import Finding, GatedFinding, PaperMeta
 
 
 @dataclass

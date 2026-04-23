@@ -7,5 +7,16 @@ __pycache__/
 dist/
 build/
 .venv/
+.venv_min/
+
+# macOS / Finder / AppleDouble
 .DS_Store
-.venv/
+._*
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+.DocumentRevisions-V100
+.TemporaryItems
+.VolumeIcon.icns
+.fseventsd

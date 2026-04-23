@@ -1,6 +1,10 @@
 # Citation Extension: Line-Indexed References
 
-_Addendum for non-Anthropic models. Appended to the Discovery skill's system prompt when the Citations API is not available._
+> **Status: NOT YET WIRED** — The orchestrator does not append this file to Discovery.
+> Line-only references conflict with quote-based verification unless the pipeline gains
+> a resolver from line indices back to exact spans.
+
+_Addendum for non-Anthropic models. Intended to be appended to the Discovery system prompt when the Citations API is not available._
 
 ---
 

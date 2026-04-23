@@ -69,12 +69,19 @@ def _extract_paper_metadata_from_row(
     """Extract paper metadata from a WG21 mailing table row.
 
     Handles both 8-column (current year) and 5-column (older) layouts.
+
+    The returned dict carries (a) parsed convenience fields used by paperlint
+    and (b) ``raw_columns`` / ``raw_links``: every cell text and first-cell
+    anchor verbatim so downstream consumers can read columns that paperlint
+    does not interpret (e.g. previous-version links, disposition columns).
     """
     if not cells:
         return None
 
     first_cell = cells[0]
     base = urllib.parse.urlparse(BASE_URL)
+
+    raw_columns = [cell.text.strip() for cell in cells]
 
     title = cells[1].text.strip() if len(cells) > 1 else ""
 
@@ -97,6 +104,15 @@ def _extract_paper_metadata_from_row(
         subgroup = cells[6].text.strip()
     elif len(cells) > 4:
         subgroup = cells[4].text.strip()
+
+    raw_links: list[dict] = []
+    for link in first_cell.find_all("a", href=True):
+        href = link.get("href", "")
+        absolute = urllib.parse.urljoin(page_url, href)
+        raw_links.append({
+            "href": absolute,
+            "text": link.text.strip(),
+        })
 
     for link in first_cell.find_all("a", href=True):
         href = link.get("href", "")
@@ -124,6 +140,8 @@ def _extract_paper_metadata_from_row(
             "document_date": document_date,
             "subgroup": subgroup,
             "paper_type": _infer_paper_type(title, paper_id),
+            "raw_columns": raw_columns,
+            "raw_links": raw_links,
         }
 
     return None
@@ -172,7 +190,7 @@ def parse_papers_for_mailing(
     """Parse papers for a mailing from a year index HTML page.
 
     Returns list of dicts with: paper_id, url, filename, type, title,
-    authors, document_date, subgroup.
+    authors, document_date, subgroup, paper_type, raw_columns, raw_links.
     """
     soup = BeautifulSoup(html, "html.parser")
     anchor_id = f"mailing{mailing_date}"

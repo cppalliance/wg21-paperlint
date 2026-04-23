@@ -2,26 +2,35 @@
 
 _Internal design reference for audit and review. This document describes how the pipeline works — it is not part of the public-facing product._
 
-_Last updated April 12, 2026._
+_Last updated April 23, 2026._
 
 ---
 
 ## Pipeline Overview
 
 ```
-Paper (HTML or PDF, by number or path)
+Paper (HTML or PDF via mailing-index URL — local paths are not accepted)
   │
   ▼
-Step 0: METADATA
-  Model: Sonnet 4.6 via OpenRouter (JSON mode)
+Step 0: METADATA (no LLM)
   Input: clean text — extract_html() for HTML, extract_pdf() for PDF
-  Output: JSON {title, authors, audience, paper_type, abstract}
+  Source: open-std.org mailing index JSON (authoritative title, authors, subgroup,
+          paper_type, canonical URL). No Sonnet/metadata LLM call.
+  Output: PaperMeta persisted as meta.json; same extract drives Discovery/Gate text.
   │
   ▼
 Step 1: DISCOVERY
   Model: Opus 4.6 via OpenRouter (JSON mode + thinking)
   Input: clean extracted text
-  Prompt: prompts/1-discovery.md + rubric.md
+  Prompt: prompts/1-discovery.md + rubric.md (+ prompts/**/*.md hashed with rubric)
+  Multi-pass (default 3, CLI `--discovery-passes N`): pass 1 runs a full discovery
+  call. Passes 2..N append a user-message block listing prior findings (category,
+  title, first-evidence location + quote excerpt) and instruct the model to return
+  only *additional* defects. Each pass response is merged into an accumulator;
+  duplicates are dropped using a key on `(category.lower(), first_location.lower(),
+  normalized_first_quote_prefix)` (whitespace-collapsed, lowercased, first 120 chars
+  of the first evidence quote). Final list is renumbered 1..N before quote
+  verification and the gate.
   Output: JSON {findings: [{number, title, category, defect, correction,
           axiom, evidence: [{location, quote}]}]}
   │
@@ -39,15 +48,20 @@ Step 2: GATE
   Output: JSON verdicts {finding_number, verdict, reason}
   │
   ▼
-Step 3: EVALUATION WRITER
-  Model: Opus 4.6 via OpenRouter (JSON mode + thinking)
-  Input: PASSed findings + metadata
-  Prompt: prompts/3-evaluation-writer.md
-  Output: JSON {summary, findings[{location, description}]}
+Step 2c: KNOWN-FP SUPPRESSION (compute, post-gate)
+  Input: gated findings → drops PASS findings matching heuristic signatures.
+  Output: updated gated list + 2c-suppressed.json audit trail
+  │
+  ▼
+Step 3: SUMMARY WRITER (LLM)
+  Model: Claude Sonnet 4.6 via OpenRouter (JSON mode)
+  Input: metadata + count of PASS findings after suppression
+  Prompt: prompts/3-evaluation-writer.md (append-only summary JSON schema)
+  Output: JSON {"summary": "..."} — **findings list is assembled in Python**, not by the model
   │
   ▼
 Step 4: ASSEMBLY (compute, no model)
-  Input: metadata (0) + verified evidence (1b) + verdicts (2) + eval (3)
+  Input: metadata + verified evidence + verdicts + suppression + summary string
   Output: evaluation.json — single deliverable file per paper
 ```
 
@@ -70,9 +84,9 @@ Each quote is programmatically verified as a substring of the source text before
 
 ## JSON Mode
 
-Every pipeline step uses JSON mode (`response_format: {"type": "json_object"}` on OpenRouter). Models return structured JSON parsed with `json.loads()`. No regex parsing of LLM output anywhere in the pipeline.
+Every pipeline LLM step uses JSON mode (`response_format: {"type": "json_object"}` on OpenRouter). Models return structured JSON parsed with `json.loads()`. `_parse_json()` tolerates minor formatting issues for robustness.
 
-**OpenRouter fence handling:** OpenRouter wraps Anthropic JSON mode responses in code fences. `_strip_fences()` removes fences before parsing.
+**OpenRouter fence handling:** OpenRouter may wrap responses in code fences. `_strip_fences()` removes fences before parsing.
 
 ---
 
@@ -80,10 +94,10 @@ Every pipeline step uses JSON mode (`response_format: {"type": "json_object"}` o
 
 | Source | Function | Library | Used by |
 |--------|----------|---------|---------|
-| HTML | `extract_html()` | `html.parser` (stdlib) | Metadata, Discovery |
-| PDF | `extract_pdf()` | `pymupdf` | Metadata, Discovery |
+| HTML | `extract_html()` | `html.parser` (stdlib) | Metadata, Discovery, Gate |
+| PDF | `extract_pdf()` | docling (preferred), pymupdf fallback | Metadata, Discovery, Gate |
 
-Text extraction produces clean text with front matter at the top. Both Metadata and Discovery receive extracted text.
+Text extraction produces clean text. Metadata and LLM stages receive the same extracted text stored as `paper.md`.
 
 ---
 
@@ -91,12 +105,12 @@ Text extraction produces clean text with front matter at the top. Both Metadata 
 
 | Step | Model | Provider | Mode |
 |------|-------|----------|------|
-| Metadata | Sonnet 4.6 | OpenRouter | JSON |
+| Metadata | _(none)_ | — | — |
 | Discovery | Opus 4.6 | OpenRouter | JSON + thinking |
 | Gate | Opus 4.6 | OpenRouter | JSON + thinking |
-| Eval Writer | Opus 4.6 | OpenRouter | JSON + thinking |
+| Summary | Sonnet 4.6 | OpenRouter | JSON |
 
-All calls route through OpenRouter. Single API provider.
+All LLM calls route through OpenRouter. Paper fetch uses `requests` with a timeout.
 
 ---
 
@@ -113,8 +127,7 @@ All calls route through OpenRouter. Single API provider.
   "title": "Carry-less product: std::clmul",
   "authors": ["Jan Schultke"],
   "audience": "LEWG",
-  "paper_type": "wording",
-  "abstract": "Summary of what the paper proposes...",
+  "paper_type": "proposal",
   "generated": "2026-04-12T...",
   "model": "anthropic/claude-opus-4.6",
   "findings_discovered": 16,
@@ -125,7 +138,9 @@ All calls route through OpenRouter. Single API provider.
     {
       "location": "§5.2",
       "description": "plain text description of the defect",
-      "reference_number": 1
+      "category": "2.5",
+      "correction": "what it should say",
+      "references": [1, 2]
     }
   ],
   "references": [
@@ -133,11 +148,15 @@ All calls route through OpenRouter. Single API provider.
       "number": 1,
       "location": "§5.2",
       "quote": "exact text from paper",
-      "verified": true
+      "verified": true,
+      "extracted_char_start": 120,
+      "extracted_char_end": 180
     }
   ]
 }
 ```
+
+`pipeline_status` is one of `complete`, `failed`, or `partial` when present on degraded runs.
 
 ### Per-mailing: `index.json` (batch mode only)
 
@@ -149,8 +168,9 @@ All calls route through OpenRouter. Single API provider.
   "mailing_id": "2026-02",
   "generated": "2026-04-12T...",
   "total_papers": 81,
-  "succeeded": 80,
-  "failed": 1,
+  "succeeded": 78,
+  "failed": 3,
+  "partial": 2,
   "rooms": {
     "LEWG": {"papers": ["P3642R4"], "total_findings": 9}
   },
@@ -160,15 +180,18 @@ All calls route through OpenRouter. Single API provider.
 }
 ```
 
+`succeeded` counts papers whose `pipeline_status` is `complete`. `failed` counts HTTP/exceptions plus `pipeline_status` of `failed` or `partial`. `partial` is the count of papers that stopped in `partial` status.
+
 ### Intermediate artifacts (per-paper, for debugging)
 
 ```
-{output_dir}/{paper_id}/
+{workspace_dir}/{paper_id}/
 ├── evaluation.json        # the deliverable
-├── meta.json              # Step 0: metadata
+├── meta.json              # Step 0: metadata (from mailing index)
+├── paper.md               # extracted text (char-offset ground truth)
 ├── 1-findings.json        # Step 1: discovery findings with evidence
 ├── 2-gate.json            # Step 2: verdicts
-└── 3-eval.json            # Step 3: evaluation writer output
+└── 2c-suppressed.json     # Step 2c: suppressed PASS findings (audit)
 ```
 
 ---
@@ -177,7 +200,7 @@ All calls route through OpenRouter. Single API provider.
 
 Each evaluation carries two identifiers:
 - **`paperlint_sha`** — git commit hash. Tracks which code produced this.
-- **`prompt_hash`** — hash of prompt + rubric file contents. Changes only when evaluation logic changes.
+- **`prompt_hash`** — SHA-256 (truncated) of **all** `prompts/**/*.md` plus `rubric.md`. Changes when any prompt or rubric content changes.
 
 Rerun rule: prompt_hash changed → full rerun. Unchanged → skip.
 
@@ -186,9 +209,9 @@ Rerun rule: prompt_hash changed → full rerun. Unchanged → skip.
 ## Invocation
 
 ```bash
-python -m paperlint eval P3642R4 --output-dir ./output/
-python -m paperlint eval ./papers/p3642r4.html --output-dir ./output/
-python -m paperlint run 2026-02 --output-dir ./data/ --max-cap 50 --max-processes 10
+python -m paperlint eval 2026-02/P3642R4 --workspace-dir ./output/
+python -m paperlint run 2026-02 --workspace-dir ./data/ --max-cap 50 --max-workers 10
+python -m paperlint mailing 2026-02 --workspace-dir ./data/
 ```
 
 ---
@@ -198,7 +221,8 @@ python -m paperlint run 2026-02 --output-dir ./data/ --max-cap 50 --max-processe
 ```
 openai             # OpenRouter API (all model calls)
 python-dotenv      # .env loading
-pymupdf            # PDF text extraction
+pymupdf            # PDF text extraction (fallback)
+docling            # PDF structure-aware extraction (preferred)
 beautifulsoup4     # HTML parsing (mailing page scraper)
 requests           # HTTP (paper fetching, mailing scraper)
 ```
@@ -209,6 +233,8 @@ requests           # HTTP (paper fetching, mailing scraper)
 
 ```
 OPENROUTER_API_KEY=sk-or-...
+# Optional:
+# OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 ```
 
 ---
@@ -216,9 +242,9 @@ OPENROUTER_API_KEY=sk-or-...
 ## Known Limitations
 
 - **Context window:** Papers exceeding ~200K tokens cannot be processed in a single Discovery call.
-- **PDF metadata:** `pymupdf` text extraction is good but not perfect on all WG21 PDF formats.
+- **PDF extraction:** docling / pymupdf quality varies by WG21 PDF toolchain.
 - **Non-determinism:** Same paper run twice may produce different findings. The Gate provides precision consistency — what passes is reliably correct, but the set of candidates varies.
-- **Quote verification:** Substring matching. Handles whitespace normalization but not OCR-quality issues in PDFs where extracted text doesn't match the visual content.
+- **Quote verification:** Substring matching with whitespace normalization; OCR PDFs may still mismatch visual text.
 
 ---
 
@@ -228,7 +254,8 @@ OPENROUTER_API_KEY=sk-or-...
 |-------|------|------|
 | Discovery | `prompts/1-discovery.md` | Find every mechanically verifiable defect |
 | Gate | `prompts/2-verification-gate.md` | Reject everything that isn't a real defect |
-| Eval Writer | `prompts/3-evaluation-writer.md` | Assemble findings into evaluation |
-| Rubric | `rubric.md` | 30 failure modes across 4 axes |
+| Summary | `prompts/3-evaluation-writer.md` | Emit a short summary JSON only |
+| Rubric | `rubric.md` | Failure modes across 4 axes |
+| Extensions | `prompts/extensions/*.md` | Hashed with prompts; optional future wiring |
 
 The prompts are the product. The orchestrator is the plumbing.

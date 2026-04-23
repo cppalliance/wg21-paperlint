@@ -2,7 +2,7 @@
 name = "paperlint"
 version = "0.1.0"
 description = "WG21 C++ standards paper evaluation pipeline"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = {text = "BSL-1.0"}
 authors = [{name = "Sergio DuBois", email = "sentientsergio@gmail.com"}]
 
@@ -10,9 +10,16 @@ dependencies = [
     "openai",
     "python-dotenv",
     "beautifulsoup4",
-    "pymupdf",
     "requests",
-    "docling",
+    "tomd",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest~=8.0",
+    # tomd is imported by paperlint.extract; its HTML/PDF stack needs these at import time
+    "mistune~=3.2",
+    "pymupdf~=1.27",
 ]
 
 [project.scripts]
@@ -21,3 +28,15 @@ paperlint = "paperlint.__main__:main"
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["paperlint*"]
+
+[tool.uv.sources]
+tomd = { path = "tomd", editable = true }
+
+[tool.pytest.ini_options]
+# Repo-root on sys.path so `import tomd` works without a prior `pip install -e ./tomd`
+# when running `pytest` from any working directory.
+pythonpath = ["."]
