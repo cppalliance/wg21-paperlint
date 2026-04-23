@@ -76,6 +76,45 @@ class PaperMeta:
 
 
 @dataclass
+class Paper:
+    """Canonical in-memory representation of a WG21 paper (design.md §4).
+
+    Declared here to match the spec's signature. Populating all fields
+    requires plumbing that does not exist yet: ``mailing_date`` and
+    ``publication_date`` are not scraped or extracted today, and
+    ``meta_source`` is not tracked in :mod:`paperlint.extract`. Wiring
+    :class:`Paper` through ``mailing.py`` / ``extract.py`` /
+    ``orchestrator.py`` and migrating :class:`PaperMeta` consumers is
+    follow-up work; :class:`PaperMeta` remains the write-side model for
+    ``meta.json`` so the on-disk wire format is unchanged by this
+    declaration.
+
+    Field semantics (from design.md §4):
+
+    * ``audience`` — short names with no hyphens (``["LEWG", "SG14"]``).
+      Section 5 notes "the tag normalization formula is Will's to define";
+      no normalizer is provided here.
+    * ``intent`` — ``"ask" | "info"``. The mapping from the open-std
+      ``paper_type`` values (``proposal`` / ``informational`` /
+      ``white-paper`` / ``standing-document``) is not specified in §4 and
+      is left to the caller.
+    * ``meta_source`` — ``"mailing"`` / ``"tomd"`` / ``"merged"`` provenance
+      tag set by whichever component last resolved the metadata.
+    """
+    document_id: str
+    mailing_id: str
+    title: str
+    authors: list[str]
+    mailing_date: str
+    publication_date: str
+    audience: list[str]
+    intent: str
+    url: str
+    markdown: str
+    meta_source: str
+
+
+@dataclass
 class Reference:
     """One reference entry in ``evaluation.references[]``.
 

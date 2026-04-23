@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
+from dataclasses import asdict, fields
 
 from paperlint.models import (
     SCHEMA_VERSION,
@@ -18,6 +18,7 @@ from paperlint.models import (
     IndexPaperEntry,
     MailingIndex,
     OutputFinding,
+    Paper,
     PaperMeta,
     Reference,
     RoomEntry,
@@ -233,3 +234,46 @@ def test_to_dict_is_json_serializable() -> None:
         references=[Reference(number=1, location="§5", quote="z", verified=True)],
     )
     json.dumps(to_dict(ev))  # must not raise
+
+
+def test_paper_matches_design_md_signature() -> None:
+    """Pin Paper's field names, types, and order to design.md §4.
+
+    If this test fails, the fix is usually to update design.md and this test
+    together; drift between them defeats the point of §4.
+    """
+    expected = [
+        ("document_id", str),
+        ("mailing_id", str),
+        ("title", str),
+        ("authors", list[str]),
+        ("mailing_date", str),
+        ("publication_date", str),
+        ("audience", list[str]),
+        ("intent", str),
+        ("url", str),
+        ("markdown", str),
+        ("meta_source", str),
+    ]
+    actual = [(f.name, f.type) for f in fields(Paper)]
+    assert actual == expected
+
+
+def test_paper_instantiates_with_all_fields() -> None:
+    p = Paper(
+        document_id="P3642R4",
+        mailing_id="2026-02",
+        title="Carry-less product: std::clmul",
+        authors=["Jan Schultke"],
+        mailing_date="2026-02-15",
+        publication_date="2026-01-15",
+        audience=["LEWG"],
+        intent="ask",
+        url="https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p3642r4.html",
+        markdown="# Carry-less product\n\n...",
+        meta_source="mailing",
+    )
+    assert p.document_id == "P3642R4"
+    assert p.audience == ["LEWG"]
+    assert p.intent == "ask"
+    assert p.meta_source == "mailing"
