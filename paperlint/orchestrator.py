@@ -32,7 +32,14 @@ import requests
 from paperlint.credentials import ensure_api_keys
 from paperlint.logutil import configure_paperlint_file_logging_if_needed, get_paperlint_logger
 from paperlint.llm import OPENROUTER_MODEL, build_client
-from paperlint.models import SCHEMA_VERSION, PaperMeta
+from paperlint.models import (
+    SCHEMA_VERSION,
+    Evaluation,
+    OutputFinding,
+    PaperMeta,
+    Reference,
+    to_dict,
+)
 from paperlint.pipeline import (
     PROMPTS_DIR,
     RUBRIC_PATH,
@@ -172,50 +179,41 @@ def load_converted_paper(
             f"Expected {md_path} and {meta_path}."
         )
     raw = json.loads(meta_path.read_text(encoding="utf-8"))
-    meta = PaperMeta(
-        paper=raw["paper"],
-        title=raw["title"],
-        authors=raw["authors"],
-        target_group=raw["target_group"],
-        paper_type=raw["paper_type"],
-        source_file=raw["source_file"],
-        run_timestamp=raw["run_timestamp"],
-        model=raw["model"],
-    )
+    meta = PaperMeta.from_dict(raw)
     return md_path.read_text(encoding="utf-8"), meta
 
 
-def _base_eval_json(source_url: str, paper_id: str, mailing_meta: dict | None) -> dict:
-    """Build the skeleton eval JSON with whatever metadata is available."""
+def _base_evaluation(
+    source_url: str, paper_id: str, mailing_meta: dict | None
+) -> Evaluation:
+    """Build the skeleton :class:`Evaluation` with whatever metadata is available."""
     if mailing_meta:
         title = mailing_meta.get("title", "Unknown")
-        authors = mailing_meta.get("authors", [])
+        authors = list(mailing_meta.get("authors", []) or [])
         audience = mailing_meta.get("subgroup", "Unknown")
     else:
         title = "Unknown"
         authors = []
         audience = "Unknown"
 
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "paperlint_sha": git_sha(),
-        "prompt_hash": prompt_hash(),
-        "source_url": source_url,
-        "pipeline_status": "failed",
-        "paper": paper_id.upper(),
-        "title": title,
-        "authors": authors,
-        "audience": audience,
-        "paper_type": "",
-        "generated": datetime.now(timezone.utc).isoformat(),
-        "model": OPENROUTER_MODEL,
-        "findings_discovered": 0,
-        "findings_passed": 0,
-        "findings_rejected": 0,
-        "summary": "",
-        "findings": [],
-        "references": [],
-    }
+    return Evaluation(
+        schema_version=SCHEMA_VERSION,
+        paperlint_sha=git_sha(),
+        prompt_hash=prompt_hash(),
+        source_url=source_url,
+        pipeline_status="failed",
+        paper=paper_id.upper(),
+        title=title,
+        authors=authors,
+        audience=audience,
+        paper_type="",
+        generated=datetime.now(timezone.utc).isoformat(),
+        model=OPENROUTER_MODEL,
+        findings_discovered=0,
+        findings_passed=0,
+        findings_rejected=0,
+        summary="",
+    )
 
 
 def _wants_error_traceback_in_json() -> bool:
@@ -223,13 +221,13 @@ def _wants_error_traceback_in_json() -> bool:
     return v in ("1", "true", "yes")
 
 
-def _apply_eval_failure_fields(eval_json: dict, stage: str, exc: Exception) -> None:
+def _apply_eval_failure(evaluation: Evaluation, stage: str, exc: Exception) -> None:
     """Attach structured failure data for debugging (additive; optional traceback)."""
-    eval_json["failure_stage"] = stage
-    eval_json["failure_type"] = type(exc).__name__
-    eval_json["failure_message"] = str(exc)
+    evaluation.failure_stage = stage
+    evaluation.failure_type = type(exc).__name__
+    evaluation.failure_message = str(exc)
     if _wants_error_traceback_in_json():
-        eval_json["failure_traceback"] = traceback.format_exc()
+        evaluation.failure_traceback = traceback.format_exc()
 
 
 def run_paper_eval(
@@ -310,14 +308,15 @@ def run_paper_eval(
             file=sys.stderr,
         )
         _log.exception("ANALYSIS FAILED: %s", paper_id, exc_info=True)
-        eval_json = _base_eval_json(source_url, paper_id, mailing_meta)
-        eval_json["pipeline_status"] = "partial"
-        eval_json["title"] = meta.title
-        eval_json["authors"] = meta.authors
-        eval_json["audience"] = meta.target_group
-        eval_json["paper_type"] = meta.paper_type
-        eval_json["summary"] = "This paper could not be fully evaluated due to an analysis issue."
-        _apply_eval_failure_fields(eval_json, "analysis", e)
+        evaluation = _base_evaluation(source_url, paper_id, mailing_meta)
+        evaluation.pipeline_status = "partial"
+        evaluation.title = meta.title
+        evaluation.authors = meta.authors
+        evaluation.audience = meta.target_group
+        evaluation.paper_type = meta.paper_type
+        evaluation.summary = "This paper could not be fully evaluated due to an analysis issue."
+        _apply_eval_failure(evaluation, "analysis", e)
+        eval_json = to_dict(evaluation)
         backend.write_evaluation_json(paper_id, eval_json)
         return eval_json
 
@@ -330,57 +329,58 @@ def run_paper_eval(
     summary = step_summary_writer(client, meta, len(passed))
 
     # Step 4: Assembly
-    references = []
+    references: list[Reference] = []
     ref_counter = 1
-    output_findings = []
+    output_findings: list[OutputFinding] = []
 
     for gf in passed:
         f = gf.finding
-        finding_refs = []
+        finding_refs: list[int] = []
         for ev in f.evidence:
             if ev.verified:
-                ref = {
-                    "number": ref_counter,
-                    "location": ev.location,
-                    "quote": ev.quote,
-                    "verified": True,
-                }
-                if ev.extracted_char_start is not None:
-                    ref["extracted_char_start"] = ev.extracted_char_start
-                    ref["extracted_char_end"] = ev.extracted_char_end
-                references.append(ref)
+                references.append(
+                    Reference(
+                        number=ref_counter,
+                        location=ev.location,
+                        quote=ev.quote,
+                        verified=True,
+                        extracted_char_start=ev.extracted_char_start,
+                        extracted_char_end=ev.extracted_char_end,
+                    )
+                )
                 finding_refs.append(ref_counter)
                 ref_counter += 1
         output_findings.append(
-            {
-                "location": f.evidence[0].location if f.evidence else "",
-                "description": f.defect,
-                "category": f.category,
-                "correction": f.correction,
-                "references": finding_refs,
-            }
+            OutputFinding(
+                location=f.evidence[0].location if f.evidence else "",
+                description=f.defect,
+                category=f.category,
+                correction=f.correction,
+                references=finding_refs,
+            )
         )
 
-    eval_json = {
-        "schema_version": SCHEMA_VERSION,
-        "paperlint_sha": git_sha(),
-        "prompt_hash": prompt_hash(),
-        "source_url": source_url,
-        "pipeline_status": "complete",
-        "paper": meta.paper,
-        "title": meta.title,
-        "authors": meta.authors,
-        "audience": meta.target_group,
-        "paper_type": meta.paper_type,
-        "generated": meta.run_timestamp,
-        "model": meta.model,
-        "findings_discovered": raw_discovered,
-        "findings_passed": len(passed),
-        "findings_rejected": len([g for g in gated if g.verdict == "REJECT"]),
-        "summary": summary,
-        "findings": output_findings,
-        "references": references,
-    }
+    evaluation = Evaluation(
+        schema_version=SCHEMA_VERSION,
+        paperlint_sha=git_sha(),
+        prompt_hash=prompt_hash(),
+        source_url=source_url,
+        pipeline_status="complete",
+        paper=meta.paper,
+        title=meta.title,
+        authors=meta.authors,
+        audience=meta.target_group,
+        paper_type=meta.paper_type,
+        generated=meta.run_timestamp,
+        model=meta.model,
+        findings_discovered=raw_discovered,
+        findings_passed=len(passed),
+        findings_rejected=len([g for g in gated if g.verdict == "REJECT"]),
+        summary=summary,
+        findings=output_findings,
+        references=references,
+    )
+    eval_json = to_dict(evaluation)
 
     eval_path = backend.write_evaluation_json(paper_id, eval_json)
 

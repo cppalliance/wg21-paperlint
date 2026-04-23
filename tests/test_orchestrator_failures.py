@@ -126,6 +126,6 @@ def test_failure_entry_includes_new_fields() -> None:
         },
     }
     e = paperlint_main._failure_entry(r)
-    assert e["failure_message"] == "disk"
-    assert e["failure_stage"] == "analysis"
-    assert e["failure_type"] == "OSError"
+    assert e.failure_message == "disk"
+    assert e.failure_stage == "analysis"
+    assert e.failure_type == "OSError"

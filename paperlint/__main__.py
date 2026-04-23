@@ -41,7 +41,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
-from paperlint.models import SCHEMA_VERSION
+from paperlint.models import (
+    SCHEMA_VERSION,
+    FailureEntry,
+    IndexPaperEntry,
+    MailingIndex,
+    RoomEntry,
+    to_dict,
+)
 from paperlint.orchestrator import (
     convert_one_paper,
     git_sha,
@@ -123,24 +130,19 @@ def _convert_one(
         return {"paper": paper_ref, "status": "error", "error": str(e)}
 
 
-def _failure_entry(r: dict) -> dict:
+def _failure_entry(r: dict) -> FailureEntry:
     if r["status"] == "error":
-        return {"paper": r["paper"], "error": r.get("error", "")}
+        return FailureEntry(paper=r["paper"], error=r.get("error", ""))
     res = r.get("result") or {}
-    out: dict = {
-        "paper": res.get("paper", r["paper"]),
-        "pipeline_status": res.get("pipeline_status"),
-        "summary": res.get("summary", ""),
-    }
-    for key in (
-        "failure_stage",
-        "failure_type",
-        "failure_message",
-        "failure_traceback",
-    ):
-        if key in res and res[key] is not None:
-            out[key] = res[key]
-    return out
+    return FailureEntry(
+        paper=res.get("paper", r["paper"]),
+        pipeline_status=res.get("pipeline_status"),
+        summary=res.get("summary", ""),
+        failure_stage=res.get("failure_stage"),
+        failure_type=res.get("failure_type"),
+        failure_message=res.get("failure_message"),
+        failure_traceback=res.get("failure_traceback"),
+    )
 
 
 def _build_index(workspace_dir: Path, mailing_id: str, results: list[dict]) -> dict:
@@ -159,8 +161,8 @@ def _build_index(workspace_dir: Path, mailing_id: str, results: list[dict]) -> d
         if r.get("result", {}).get("pipeline_status") == "partial"
     )
 
-    rooms: dict[str, dict] = defaultdict(lambda: {"papers": [], "total_findings": 0})
-    papers_summary = []
+    rooms: dict[str, RoomEntry] = defaultdict(RoomEntry)
+    papers_summary: list[IndexPaperEntry] = []
 
     for r in succeeded:
         ev = r["result"]
@@ -170,35 +172,35 @@ def _build_index(workspace_dir: Path, mailing_id: str, results: list[dict]) -> d
 
         for room in [a.strip() for a in audience.split(",")]:
             if room:
-                rooms[room]["papers"].append(paper_id)
-                rooms[room]["total_findings"] += n_findings
+                rooms[room].papers.append(paper_id)
+                rooms[room].total_findings += n_findings
 
-        papers_summary.append({
-            "paper": paper_id,
-            "title": ev.get("title", ""),
-            "audience": audience,
-            "findings_passed": n_findings,
-            "findings_discovered": ev.get("findings_discovered", 0),
-        })
+        papers_summary.append(
+            IndexPaperEntry(
+                paper=paper_id,
+                title=ev.get("title", ""),
+                audience=audience,
+                findings_passed=n_findings,
+                findings_discovered=ev.get("findings_discovered", 0),
+            )
+        )
 
-    index = {
-        "schema_version": SCHEMA_VERSION,
-        "paperlint_sha": git_sha(),
-        "prompt_hash": prompt_hash(),
-        "mailing_id": mailing_id,
-        "generated": datetime.now(timezone.utc).isoformat(),
-        "total_papers": len(results),
-        "succeeded": len(succeeded),
-        "failed": len(failed),
-        "partial": partial_count,
-        "rooms": {k: dict(v) for k, v in sorted(rooms.items())},
-        "papers": sorted(papers_summary, key=lambda p: p.get("findings_passed", 0)),
-    }
+    index = MailingIndex(
+        schema_version=SCHEMA_VERSION,
+        paperlint_sha=git_sha(),
+        prompt_hash=prompt_hash(),
+        mailing_id=mailing_id,
+        generated=datetime.now(timezone.utc).isoformat(),
+        total_papers=len(results),
+        succeeded=len(succeeded),
+        failed=len(failed),
+        partial=partial_count,
+        rooms={k: rooms[k] for k in sorted(rooms)},
+        papers=sorted(papers_summary, key=lambda p: p.findings_passed),
+        failed_papers=[_failure_entry(r) for r in failed] if failed else None,
+    )
 
-    if failed:
-        index["failed_papers"] = [_failure_entry(r) for r in failed]
-
-    return index
+    return to_dict(index)
 
 
 _EVAL_CONTRACT_MSG = (
