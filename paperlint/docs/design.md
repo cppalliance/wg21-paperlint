@@ -10,7 +10,7 @@ _Last updated April 23, 2026._
 
 PaperLint is the data-acquisition and transformation layer at the front of the pipeline. It scrapes open-std.org mailing metadata, downloads papers, and converts them to markdown. After PaperLint populates Postgres, Agora21 runs, then C++ Herald concurrently; PRAGMA also follows. None of these downstream systems ingest the mailing directly — they all read from Postgres.
 
-**Single public repo principle** (Vinnie, Apr 10 huddle via Sergio, `ts=1775832838.673649`): _"Can a user clone the repo and only the repo and replicate the findings? You want the minimum. That from which no single file can be removed and still achieve the result."_
+**Single public repo principle** (Vinnie, Apr 10 huddle): _"Can a user clone the repo and only the repo and replicate the findings? You want the minimum. That from which no single file can be removed and still achieve the result."_
 
 Two modes of operation:
 
@@ -21,7 +21,7 @@ Two modes of operation:
 
 ## 2. Repository Layout
 
-tomd is folded into `cppalliance/wg21-paperlint` — no reason to keep it in a separate repo that causes multiple copies and confusion (`ts=1776955968.079349`). A `vendor.md` in the tomd folder pins the upstream repo for reference (`ts=1776955951.404349`).
+tomd is folded into `cppalliance/wg21-paperlint` — no reason to keep it in a separate repo that causes multiple copies and confusion. A `vendor.md` in the tomd folder pins the upstream repo for reference.
 
 ```
 cppalliance/wg21-paperlint/      (public — users clone this to replicate)
@@ -39,7 +39,7 @@ cppalliance/wg21-paperlint/      (public — users clone this to replicate)
 └── pyproject.toml
 ```
 
-`cppalliance/wg21-website` (private Django app) imports wg21-paperlint as a Git submodule (Will, `2026-04-22-vinnie-mungo-will-huddle-clean.txt:371`). The Postgres backend implementation lives in `wg21-website`, not here.
+`cppalliance/wg21-website` (private Django app) imports wg21-paperlint as a Git submodule. The Postgres backend implementation lives in `wg21-website`, not here.
 
 ---
 
@@ -63,7 +63,7 @@ Agora21  C++ Herald  PRAGMA
 
 - Scrape is the serial bottleneck: one request stream to open-std.org.
 - After scrape, tomd conversion is embarrassingly parallel (minutes for a full mailing). tomd is lightweight — no ML, no OCR — so many workers can run concurrently with low memory overhead.
-- **Eval is currently suspended.** Vinnie, 2026-04-22: _"We have turned off the evaluation of papers for now because it is not as objective as we would like"_ (`ts=1776864805.896979`). Vinnie redirected contributors toward the PDF/HTML→markdown conversion and paper-revision diff work. The scrape+convert path runs independently.
+- **Eval is currently suspended.** Vinnie, Apr 22 2026: _"We have turned off the evaluation of papers for now because it is not as objective as we would like."_ Vinnie redirected contributors toward the PDF/HTML→markdown conversion and paper-revision diff work. The scrape+convert path runs independently.
 - Downstream systems (Agora21, C++ Herald, PRAGMA) read from Postgres — they do not re-scrape the mailing.
 
 ---
@@ -89,13 +89,13 @@ class Paper:
 
 `meta_source` records provenance: `"mailing"` = authoritative from open-std scrape; `"tomd"` = extracted by tomd from the paper body; `"merged"` = both sources agreed.
 
-**Metadata authority rule** (Vinnie, Apr 22 huddle, `2026-04-22-vinnie-mungo-huddle-clean.txt:854`): _"The website should always show what comes from the mailing."_ The mailing index is the source of truth for all fields. tomd receives the mailing metadata when invoked and uses it to augment YAML front-matter for fields missing from the source file — this is tomd's responsibility, not paperlint's (`ts=1776956104.207429`, `ts=1776956118.824869`).
+**Metadata authority rule** (Vinnie, Apr 22 huddle): _"The website should always show what comes from the mailing."_ The mailing index is the source of truth for all fields. tomd receives the mailing metadata when invoked and uses it to augment YAML front-matter for fields missing from the source file — this is tomd's responsibility, not paperlint's.
 
 ---
 
 ## 5. tomd YAML Front-Matter Spec
 
-Fields tomd emits and their canonical forms. These were flagged directly at Greg by Vinnie on Apr 22–23 (`ts=1776955265.896099`, `ts=1776955294.874629`, `ts=1776955324.583759`):
+Fields tomd emits and their canonical forms:
 
 | Field | Correct form | Wrong form |
 |---|---|---|
@@ -106,7 +106,7 @@ Fields tomd emits and their canonical forms. These were flagged directly at Greg
 
 Canonical field order: `title`, `document`, `date`, `intent`, `audience`, `reply-to`.
 
-Audience normalization: wg21.org displays audience values from open-std metadata but must normalize to short names without hyphens. "EWG Evolution" → "EWG", "SG-16" → "SG16". Decision: `ts=1776896696.286069`, `ts=1776896784.691829`. The tag normalization formula is Will's to define.
+Audience normalization: wg21.org displays audience values from open-std metadata but must normalize to short names without hyphens. "EWG Evolution" → "EWG", "SG-16" → "SG16". The tag normalization formula is Will's to define.
 
 tomd's contract: extract what's in the source file; if a field is absent from the source, leave it absent and let the mailing metadata fill it in (tomd receives that metadata at invocation time).
 
@@ -128,9 +128,9 @@ Two concrete backends behind the same Python interface (`storage.py`):
 - Django app calls paperlint functions directly as a Python library — not via subprocess — so paper objects are shared in-memory without serialization overhead
 - `storage.py` here defines only the abstract interface
 
-The JSON backend must work without Postgres installed. The Postgres backend must not be required to run paperlint (Vinnie, `2026-04-22-vinnie-mungo-will-huddle-clean.txt:195`): _"It has to be in PaperLint because users need to be able to do it. So that means someone needs to be able to clone the PaperLint repo, run the scraper, and get the JSON into a specific directory."_
+The JSON backend must work without Postgres installed. The Postgres backend must not be required to run paperlint (Vinnie, Apr 22 huddle): _"It has to be in PaperLint because users need to be able to do it. So that means someone needs to be able to clone the PaperLint repo, run the scraper, and get the JSON into a specific directory."_
 
-JSON is preferred over SQLite for the local backend because files are directly inspectable for debugging (Vinnie, `2026-04-22-vinnie-mungo-will-huddle-clean.txt:222`): _"if it's JSON, then people can inspect it. It can do double duty as a debug tool."_
+JSON is preferred over SQLite for the local backend because files are directly inspectable for debugging (Vinnie, Apr 22 huddle): _"if it's JSON, then people can inspect it. It can do double duty as a debug tool."_
 
 ---
 
@@ -151,9 +151,9 @@ def process_mailing(mailing_id: str):
         # eval pipeline suspended; add back when ready
 ```
 
-wg21-paperlint is installed as a Git submodule (Will, `2026-04-22-vinnie-mungo-will-huddle-clean.txt:371`). Django imports it as a Python library, not via subprocess.
+wg21-paperlint is installed as a Git submodule. Django imports it as a Python library, not via subprocess.
 
-**Current state:** mailing detection (polling open-std.org for new mailings) lives in the Django app (`2026-04-22-vinnie-mungo-will-huddle-clean.txt:393`: _"The mailing detection is in the website, the Django app."_). Long-term intent (Vinnie, `2026-04-22-vinnie-mungo-will-huddle-clean.txt:195`): move it into paperlint so the full pipeline is runnable without Django. Not yet done; tracked as a pending item (see §10).
+**Current state:** mailing detection (polling open-std.org for new mailings) lives in the Django app. Long-term intent (Vinnie, Apr 22 huddle): move it into paperlint so the full pipeline is runnable without Django. Not yet done; tracked as a pending item (see §10).
 
 ---
 
@@ -178,7 +178,7 @@ python -m paperlint run 2026-02 --workspace-dir ./data/ [--max-cap 10]
 python -m tomd 2026-02/P3642R4 --workspace-dir ./data/
 ```
 
-CLI requires `<mailing-id>/<paper-id>` form; bare paper-id or local path returns a clean error (decided in PR #43, `ts=1776778247.195699`).
+CLI requires `<mailing-id>/<paper-id>` form; bare paper-id or local path returns a clean error (decided in PR #43).
 
 ---
 
@@ -446,5 +446,5 @@ The prompts are the product. The orchestrator is the plumbing.
 
 Decisions not yet finalized as of Apr 23, 2026:
 
-- **GitHub issues per paper:** Where does per-paper issue tracking live once eval ships? Corentin noted `wg21.link/PXXXX/github` works as a pattern (`ts=1776938897.657589`); where this is hosted and how paperlint links to it is unresolved.
+- **GitHub issues per paper:** Where does per-paper issue tracking live once eval ships? `wg21.link/PXXXX/github` works as a URL pattern; where this is hosted and how paperlint links to it is unresolved.
 - **Mailing detection in paperlint vs. Django:** Vinnie's stated intent is to move mailing detection into the paperlint repo so the full pipeline can run without Django. Currently lives in `wg21-website`. Not yet scheduled.
