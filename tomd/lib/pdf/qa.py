@@ -231,6 +231,7 @@ def _qa_one(path_str: str) -> dict:
 
             md_text, _, _ = convert_html(path)
             m = compute_metrics(md_text)
+            m.file = str(path)
             return asdict(m)
 
         from . import _run_pipeline
@@ -250,6 +251,7 @@ def _qa_one(path_str: str) -> dict:
             return asdict(m)
 
         m = compute_metrics(r.md)
+        m.file = str(path)
         return asdict(m)
 
     except Exception as exc:
@@ -356,8 +358,9 @@ def run_qa_report(
             results.append(_qa_metrics_from_dict(d))
 
     wall = time.monotonic() - t0
+    avg_s_per_file = wall / total if total else 0.0
     print(
-        f"\n  Finished in {wall/60:.1f} minutes " f"({wall/total:.1f}s/file avg)\n",
+        f"\n  Finished in {wall/60:.1f} minutes ({avg_s_per_file:.1f}s/file avg)\n",
         file=sys.stderr,
     )
 

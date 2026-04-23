@@ -54,11 +54,11 @@ def _infer_paper_type(title: str, paper_id: str) -> str:
 
     if "white paper" in title_lower:
         return "info"
-    if title_s.startswith("Info:"):
+    if title_lower.startswith("info:"):
         return "info"
-    if title_s.startswith("Ask:"):
+    if title_lower.startswith("ask:"):
         return "ask"
-    if title_s.startswith("Poll:"):
+    if title_lower.startswith("poll:"):
         return "poll"
 
     if pid.startswith("n"):

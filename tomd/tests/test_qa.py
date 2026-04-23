@@ -44,7 +44,8 @@ Final paragraph.
 
 class TestPerfectScore:
     def test_good_markdown_scores_100(self):
-        m = compute_metrics(_GOOD_MD, file="test.pdf")
+        m = compute_metrics(_GOOD_MD)
+        m.file = "test.pdf"
         assert m.score == 100, f"expected 100, got {m.score}: {m.issues}"
 
     def test_heading_count(self):
@@ -80,8 +81,7 @@ class TestUncertainRegions:
 
     def test_many_uncertain_regions(self):
         markers = "\n".join(
-            f"<!-- tomd:uncertain:L{i}-L{i+5} -->\ntext\n"
-            for i in range(10)
+            f"<!-- tomd:uncertain:L{i}-L{i+5} -->\ntext\n" for i in range(10)
         )
         md = f"## Heading\n\n{markers}\n"
         m = compute_metrics(md)
@@ -92,7 +92,9 @@ class TestUncertainRegions:
 class TestNoHeadings:
     def test_no_headings_long_doc_penalized(self):
         """A document with 10+ paragraphs and zero headings is penalized."""
-        paras = "\n\n".join(f"Paragraph number {i} with some content." for i in range(15))
+        paras = "\n\n".join(
+            f"Paragraph number {i} with some content." for i in range(15)
+        )
         m = compute_metrics(paras)
         assert m.heading_count == 0
         assert m.score < 80
