@@ -19,6 +19,7 @@ from pathlib import Path
 import openai
 
 from paperlint.extract import extract_text
+from paperlint.mailing import mailing_row_to_paper
 from paperlint.llm import (
     OPENROUTER_MODEL,
     OPENROUTER_SONNET,
@@ -30,7 +31,8 @@ from paperlint.llm import (
     parse_json,
     clean_envelope,
 )
-from paperlint.models import Evidence, Finding, GatedFinding, PaperMeta
+from paperlint.models import Evidence, Finding, GatedFinding, Paper, RunContext
+from tomd.lib.mailing_merge import rollup_meta_source
 
 _PKG_ROOT = Path(__file__).resolve().parent
 PROMPTS_DIR = _PKG_ROOT / "prompts"
@@ -80,67 +82,47 @@ def _format_findings_for_gate(findings: list[Finding]) -> str:
     return "\n".join(lines)
 
 
-def _format_findings_for_eval(meta: PaperMeta, passed: list[GatedFinding]) -> str:
-    lines = [
-        "# Paper Metadata\n",
-        f"- **Paper:** {meta.paper}",
-        f"- **Title:** {meta.title}",
-        f"- **Authors:** {', '.join(meta.authors)}",
-        f"- **Target group:** {meta.target_group}",
-        "",
-        f"# Gated Findings ({len(passed)} items)\n",
-    ]
-    for g in passed:
-        f = g.finding
-        lines.append(f"## Finding #{f.number}: {f.title}")
-        lines.append(f"- **Category:** {f.category}")
-        for ev in f.evidence:
-            lines.append(f"- **Location:** {ev.location}")
-            lines.append(f'- **Quoted text:** "{ev.quote}"')
-        lines.append(f"- **Defect:** {f.defect}")
-        lines.append(f"- **Correction:** {f.correction}")
-        lines.append("")
-    return "\n".join(lines)
+def step_metadata(
+    paper_path: Path, mailing_meta: dict, mailing_id: str
+) -> tuple[str, Paper, RunContext]:
+    """Step 0: Build ``Paper`` from the mailing index and extract text via tomd.
 
-
-def step_metadata(paper_path: Path, mailing_meta: dict) -> tuple[str, PaperMeta]:
-    """Step 0: Build PaperMeta from the authoritative mailing index and extract paper text.
-
-    The open-std.org mailing index is authoritative for title, authors, audience, and
-    paper_type. No LLM call is made for metadata; the index is ground truth.
+    The open-std.org mailing index is authoritative. No LLM call is made for
+    metadata; the index is ground truth for YAML front matter (merged in tomd).
     """
     print("\n--- Step 0: Metadata (from mailing index) ---")
 
     paper_number = paper_path.stem.upper()
+    provenance: dict[str, str] = {}
 
     try:
-        clean_text = extract_text(str(paper_path), mailing_meta=mailing_meta)
+        clean_text, provenance = extract_text(str(paper_path), mailing_meta=mailing_meta)
     except Exception as e:
         print(f"  Text extraction failed: {e}")
         if paper_path.suffix.lower() != ".pdf":
             clean_text = paper_path.read_text(encoding="utf-8")[:15000]
         else:
             clean_text = f"[Document: {paper_number}]"
+        provenance = {}
 
-    authors = mailing_meta.get("authors", []) or []
-    if isinstance(authors, str):
-        authors = [a.strip() for a in authors.split(",") if a.strip()]
-
-    meta = PaperMeta(
-        paper=paper_number,
-        title=mailing_meta.get("title", "") or "",
-        authors=authors,
-        target_group=mailing_meta.get("subgroup", "") or "",
-        paper_type=mailing_meta.get("paper_type", "proposal") or "proposal",
+    meta_source = rollup_meta_source(provenance) if provenance else "mailing"
+    paper = mailing_row_to_paper(
+        mailing_meta,
+        mailing_id,
+        markdown=clean_text,
+        meta_source=meta_source,
+    )
+    ctx = RunContext(
         source_file=str(paper_path),
         run_timestamp=datetime.now(timezone.utc).isoformat(),
         model=OPENROUTER_MODEL,
     )
 
-    print(f"  Paper: {meta.paper} — {meta.title}")
-    print(f"  Authors: {', '.join(meta.authors)}")
-    print(f"  Target: {meta.target_group} | Type: {meta.paper_type}")
-    return clean_text, meta
+    aud = ", ".join(paper.audience)
+    print(f"  Paper: {paper.document_id} — {paper.title}")
+    print(f"  Authors: {', '.join(paper.authors)}")
+    print(f"  Target: {aud} | Intent: {paper.intent} | meta_source: {paper.meta_source}")
+    return clean_text, paper, ctx
 
 
 def _discovery_json_schema() -> str:
@@ -288,7 +270,7 @@ def _merge_pass(
 def step_discovery(
     client: openai.OpenAI,
     clean_text: str,
-    meta: PaperMeta,
+    paper: Paper,
     *,
     passes: int = 3,
 ) -> list[Finding]:
@@ -312,10 +294,11 @@ def step_discovery(
         f"{skill_text}\n\n---\n\n# Evaluation Rubric\n\n{rubric_text}{json_schema}"
     )
 
+    aud = ", ".join(paper.audience)
     base_user = (
-        f'<paper title="{meta.paper} — {meta.title}" '
-        f'target_group="{meta.target_group}" '
-        f"authors=\"{', '.join(meta.authors)}\">\n"
+        f'<paper title="{paper.document_id} — {paper.title}" '
+        f'target_group="{aud}" '
+        f"authors=\"{', '.join(paper.authors)}\">\n"
         f"{clean_text}\n"
         f"</paper>\n\n"
         f"Analyze this paper for objective defects per the rubric.\n\n"
@@ -420,7 +403,7 @@ def step_verify_quotes(findings: list[Finding], source_text: str) -> list[Findin
 def step_gate(
     client: openai.OpenAI,
     paper_text: str,
-    meta: PaperMeta,
+    paper: Paper,
     findings: list[Finding],
 ) -> list[GatedFinding]:
     """Step 2: Verification Gate."""
@@ -434,7 +417,7 @@ def step_gate(
     findings_text = _format_findings_for_gate(findings)
 
     user_content = (
-        f'<paper title="{meta.paper} — {meta.title}">\n'
+        f'<paper title="{paper.document_id} — {paper.title}">\n'
         f"{paper_text}\n"
         f"</paper>\n\n"
         f"{findings_text}"
@@ -478,10 +461,10 @@ def step_gate(
             if attempt == 0:
                 print("  Retrying Gate (empty response, attempt 2)...")
                 continue
-            raise RuntimeError(f"paperlint [Gate] Empty response for {meta.paper}")
+            raise RuntimeError(f"paperlint [Gate] Empty response for {paper.document_id}")
 
         try:
-            parsed = parse_json(raw, f"Gate paper={meta.paper}")
+            parsed = parse_json(raw, f"Gate paper={paper.document_id}")
             break
         except json.JSONDecodeError:
             if attempt < 2:
@@ -525,12 +508,12 @@ def step_gate(
     return gated
 
 
-def step_summary_writer(client: openai.OpenAI, meta: PaperMeta, n_findings: int) -> str:
+def step_summary_writer(client: openai.OpenAI, paper: Paper, n_findings: int) -> str:
     """Step 3: Write the evaluation summary. Findings pass through from Discovery untouched."""
     print("\n--- Step 3: Summary ---")
 
     if n_findings == 0:
-        summary = f"No objective problems found in {meta.paper} — {meta.title}."
+        summary = f"No objective problems found in {paper.document_id} — {paper.title}."
         print(f"  Clean paper: {summary}")
         return summary
 
@@ -544,11 +527,12 @@ def step_summary_writer(client: openai.OpenAI, meta: PaperMeta, n_findings: int)
         "Return ONLY the JSON."
     )
 
+    aud = ", ".join(paper.audience)
     user_content = (
-        f"Paper: {meta.paper} — {meta.title}\n"
-        f"Authors: {', '.join(meta.authors)}\n"
-        f"Audience: {meta.target_group}\n"
-        f"Type: {meta.paper_type}\n\n"
+        f"Paper: {paper.document_id} — {paper.title}\n"
+        f"Authors: {', '.join(paper.authors)}\n"
+        f"Audience: {aud}\n"
+        f"Intent: {paper.intent}\n\n"
         f"Number of findings that passed verification: {n_findings}\n\n"
         f"Summarize what the evaluation found. Characterize the findings "
         f"at the level of categories and sections — do not list each one. "
@@ -570,9 +554,9 @@ def step_summary_writer(client: openai.OpenAI, meta: PaperMeta, n_findings: int)
     raw = extract_response_text(response)
     try:
         parsed = json.loads(clean_envelope(raw))
-        summary = parsed.get("summary", f"Evaluation of {meta.paper}.")
+        summary = parsed.get("summary", f"Evaluation of {paper.document_id}.")
     except json.JSONDecodeError:
-        summary = f"Evaluation of {meta.paper} — {meta.title}."
+        summary = f"Evaluation of {paper.document_id} — {paper.title}."
 
     preview = summary[:100]
     suffix = "..." if len(summary) > 100 else ""

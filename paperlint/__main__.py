@@ -83,6 +83,7 @@ def _eval_one_paper(
     source_url: str = "",
     mailing_meta: dict | None = None,
     *,
+    mailing_id: str = "",
     discovery_passes: int = 3,
 ) -> dict:
     try:
@@ -91,6 +92,7 @@ def _eval_one_paper(
             workspace_dir=workspace_dir,
             source_url=source_url,
             mailing_meta=mailing_meta,
+            mailing_id=mailing_id,
             discovery_passes=discovery_passes,
         )
         return {"paper": paper_ref, "status": "ok", "result": result}
@@ -104,6 +106,7 @@ def _convert_one(
     workspace_dir: Path,
     source_url: str,
     mailing_meta: dict,
+    mailing_id: str,
 ) -> dict:
     try:
         result = convert_one_paper(
@@ -111,6 +114,7 @@ def _convert_one(
             workspace_dir=workspace_dir,
             source_url=source_url,
             mailing_meta=mailing_meta,
+            mailing_id=mailing_id,
         )
         return {
             "paper": paper_ref,
@@ -165,10 +169,14 @@ def _build_index(workspace_dir: Path, mailing_id: str, results: list[dict]) -> d
     for r in succeeded:
         ev = r["result"]
         paper_id = ev.get("paper", r["paper"])
-        audience = ev.get("audience", "Unknown")
+        audience_raw = ev.get("audience", [])
+        if isinstance(audience_raw, str):
+            audience_rooms = [a.strip() for a in audience_raw.split(",") if a.strip()]
+        else:
+            audience_rooms = list(audience_raw) if audience_raw else []
         n_findings = ev.get("findings_passed", 0)
 
-        for room in [a.strip() for a in audience.split(",")]:
+        for room in audience_rooms:
             if room:
                 rooms[room]["papers"].append(paper_id)
                 rooms[room]["total_findings"] += n_findings
@@ -176,7 +184,7 @@ def _build_index(workspace_dir: Path, mailing_id: str, results: list[dict]) -> d
         papers_summary.append({
             "paper": paper_id,
             "title": ev.get("title", ""),
-            "audience": audience,
+            "audience": audience_rooms,
             "findings_passed": n_findings,
             "findings_discovered": ev.get("findings_discovered", 0),
         })
@@ -308,6 +316,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
             workspace_dir=workspace_dir,
             source_url=meta.get("url", ""),
             mailing_meta=meta,
+            mailing_id=mailing_id,
             discovery_passes=args.discovery_passes,
         )
         return 0
@@ -367,6 +376,7 @@ def cmd_run(args: argparse.Namespace) -> int:
                 workspace_dir,
                 source_url=pm["url"] if pm else "",
                 mailing_meta=pm,
+                mailing_id=mailing_id,
                 discovery_passes=args.discovery_passes,
             )
             results.append(result)
@@ -384,6 +394,7 @@ def cmd_run(args: argparse.Namespace) -> int:
                     workspace_dir,
                     pm["url"] if pm else "",
                     pm,
+                    mailing_id=mailing_id,
                     discovery_passes=args.discovery_passes,
                 )
                 futures[f] = pid
@@ -457,7 +468,9 @@ def cmd_convert(args: argparse.Namespace) -> int:
         for p in papers:
             pid = p["paper_id"]
             pm = meta_by_id.get(pid)
-            r = _convert_one(pid, workspace_dir, pm["url"] if pm else "", pm)
+            r = _convert_one(
+                pid, workspace_dir, pm["url"] if pm else "", pm, mailing_id
+            )
             results.append(r)
             status = "OK" if r["status"] == "ok" else "FAILED"
             print(f"\n  [{status}] {pid}")
@@ -473,6 +486,7 @@ def cmd_convert(args: argparse.Namespace) -> int:
                     workspace_dir,
                     pm["url"] if pm else "",
                     pm,
+                    mailing_id,
                 )
                 futures[f] = pid
             for future in as_completed(futures):

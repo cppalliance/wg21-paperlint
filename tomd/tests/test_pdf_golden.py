@@ -40,7 +40,7 @@ def test_convert_pdf_matches_golden(stem: str):
     if not pdf_path.is_file():
         pytest.skip(f"missing PDF fixture: {pdf_path}")
 
-    md, prompts = convert_pdf(pdf_path)
+    md, prompts, _prov = convert_pdf(pdf_path)
     golden_md = _GOLDEN / f"{stem}.golden.md"
     assert golden_md.is_file(), f"missing golden: {golden_md}"
     expected_md = golden_md.read_text(encoding="utf-8")

@@ -110,10 +110,10 @@ def main():
             ext = input_file.suffix.lower()
             if ext in _HTML_EXTENSIONS:
                 from .lib.html import convert_html
-                md_text, prompts_text = convert_html(input_file)
+                md_text, prompts_text, _prov = convert_html(input_file)
             elif ext in _PDF_EXTENSIONS:
                 from .lib.pdf import convert_pdf
-                md_text, prompts_text = convert_pdf(input_file)
+                md_text, prompts_text, _prov = convert_pdf(input_file)
             else:
                 print(f"SKIP: {input_file} unsupported format", file=sys.stderr)
                 failures.append(input_file)

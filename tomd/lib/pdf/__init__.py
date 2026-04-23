@@ -14,6 +14,7 @@ from .wording import classify_wording, collect_line_drawings
 from .spans import normalize_spans
 from .structure import compare_extractions, structure_sections
 from .table import detect_tables, exclude_table_regions
+from ..mailing_merge import merge_yaml_with_mailing
 from .wg21 import extract_metadata_from_blocks
 from .emit import emit_markdown, emit_prompts
 from .types import Section, SectionKind, is_readable
@@ -122,6 +123,7 @@ class PipelineResult:
     prompts: str | None = None
     sections: list[Section] = field(default_factory=list)
     metadata: dict = field(default_factory=dict)
+    provenance: dict[str, str] = field(default_factory=dict)
     page_count: int = 0
     nesting_corrections: int = 0
     readable: bool = True
@@ -129,7 +131,7 @@ class PipelineResult:
     skip_reason: str = ""
 
 
-def _run_pipeline(path: Path) -> PipelineResult:
+def _run_pipeline(path: Path, mailing_meta: dict | None = None) -> PipelineResult:
     """Run the full PDF conversion pipeline, returning all intermediate data."""
     import fitz
 
@@ -282,7 +284,8 @@ def _run_pipeline(path: Path) -> PipelineResult:
     if toc_indices:
         sections = [s for i, s in enumerate(sections) if i not in toc_indices]
 
-    md = emit_markdown(metadata, sections)
+    merged_metadata, provenance = merge_yaml_with_mailing(metadata, mailing_meta)
+    md = emit_markdown(merged_metadata, sections)
     prompts = emit_prompts(sections)
 
     if wording_problems:
@@ -296,17 +299,19 @@ def _run_pipeline(path: Path) -> PipelineResult:
     result.md = md
     result.prompts = prompts
     result.sections = sections
-    result.metadata = metadata
+    result.metadata = merged_metadata
+    result.provenance = provenance
     result.nesting_corrections = nesting_corrections
     return result
 
 
-def convert_pdf(path: Path) -> tuple[str, str | None]:
+def convert_pdf(path: Path, mailing_meta: dict | None = None) -> tuple[str, str | None, dict[str, str]]:
     """Convert a PDF file to Markdown.
 
-    Returns (markdown_text, prompts_text_or_none).
-    Returns ("", None) for empty or unreadable PDFs.
+    Returns ``(markdown_text, prompts_text_or_none, provenance)``.
+    ``provenance`` maps YAML front-matter keys to ``\"mailing\"`` or ``\"tomd\"``.
+    Returns ``(\"\", None, {})`` for empty or unreadable PDFs.
     Raises fitz exceptions for corrupt or inaccessible files.
     """
-    r = _run_pipeline(path)
-    return r.md, r.prompts
+    r = _run_pipeline(path, mailing_meta=mailing_meta)
+    return r.md, r.prompts, r.provenance

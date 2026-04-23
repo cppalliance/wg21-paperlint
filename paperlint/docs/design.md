@@ -16,7 +16,7 @@ Step 0: METADATA (no LLM)
   Input: clean text — extract_html() for HTML, extract_pdf() for PDF
   Source: open-std.org mailing index JSON (authoritative title, authors, subgroup,
           paper_type, canonical URL). No Sonnet/metadata LLM call.
-  Output: PaperMeta persisted as meta.json; same extract drives Discovery/Gate text.
+  Output: ``Paper`` (minus markdown) + ``_runtime`` persisted as meta.json; same extract drives Discovery/Gate text.
   │
   ▼
 Step 1: DISCOVERY

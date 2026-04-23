@@ -49,7 +49,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from paperlint.models import Finding, GatedFinding, PaperMeta
+    from paperlint.models import Finding, GatedFinding, Paper, RunContext
 
 
 @dataclass
@@ -66,8 +66,8 @@ class SuppressionMatch:
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _is_pdf(meta: PaperMeta) -> bool:
-    return meta.source_file.lower().endswith(".pdf")
+def _is_pdf(ctx: RunContext) -> bool:
+    return ctx.source_file.lower().endswith(".pdf")
 
 
 def _snippet(text: str, start: int, end: int, context: int = 40) -> str:
@@ -96,9 +96,9 @@ _INTRA_WORD_EVIDENCE_RE = re.compile(r"\b[A-Z]\s+[a-z]{2,}\b")
 
 
 def _is_intra_word_spacing(
-    finding: Finding, meta: PaperMeta
+    finding: Finding, paper: Paper, ctx: RunContext
 ) -> SuppressionMatch | None:
-    if not _is_pdf(meta):
+    if not _is_pdf(ctx):
         return None
     defect_lower = finding.defect.lower()
     if not any(kw in defect_lower for kw in _INTRA_WORD_DEFECT_KEYWORDS):
@@ -124,7 +124,7 @@ _TOC_LOCATION_RE = re.compile(r"(table of contents|\btoc\b)", re.IGNORECASE)
 
 
 def _is_toc_location(
-    finding: Finding, meta: PaperMeta
+    finding: Finding, paper: Paper, ctx: RunContext
 ) -> SuppressionMatch | None:
     if not finding.evidence:
         return None
@@ -158,9 +158,9 @@ _BRACKETED_WRAP_DEFECT_KEYWORDS = (
 
 
 def _is_bracketed_identifier_layout_wrap(
-    finding: Finding, meta: PaperMeta
+    finding: Finding, paper: Paper, ctx: RunContext
 ) -> SuppressionMatch | None:
-    if not _is_pdf(meta):
+    if not _is_pdf(ctx):
         return None
     defect_lower = finding.defect.lower()
     if not any(kw in defect_lower for kw in _BRACKETED_WRAP_DEFECT_KEYWORDS):
@@ -191,7 +191,8 @@ _SIGNATURES = (
 
 def step_suppress_known_fps(
     gated: list[GatedFinding],
-    meta: PaperMeta,
+    paper: Paper,
+    ctx: RunContext,
 ) -> tuple[list[GatedFinding], list[dict]]:
     """Suppress gated findings matching known false-positive signatures.
 
@@ -217,7 +218,7 @@ def step_suppress_known_fps(
 
         match: SuppressionMatch | None = None
         for sig_fn in _SIGNATURES:
-            match = sig_fn(gf.finding, meta)
+            match = sig_fn(gf.finding, paper, ctx)
             if match is not None:
                 break
 

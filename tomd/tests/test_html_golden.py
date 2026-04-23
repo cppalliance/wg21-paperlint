@@ -46,7 +46,7 @@ def test_convert_html_matches_golden(stem: str):
     if not html_path.is_file():
         pytest.skip(f"missing paper HTML: {html_path} (papers/ is gitignored)")
 
-    md, prompts = convert_html(html_path)
+    md, prompts, _ = convert_html(html_path)
     golden_md = _GOLDEN / f"{stem}.golden.md"
     assert golden_md.is_file(), f"missing golden: {golden_md}"
     expected_md = _read_expected(golden_md)

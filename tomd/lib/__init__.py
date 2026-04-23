@@ -53,7 +53,7 @@ def strip_format_chars(text: str) -> str:
     return "".join(c for c in text if c not in FORMAT_CHARS)
 
 
-FRONT_MATTER_ORDER = ("title", "document", "date", "audience", "reply-to")
+FRONT_MATTER_ORDER = ("title", "document", "date", "intent", "audience", "reply-to")
 
 
 def _yaml_escape(s: str) -> str:
@@ -75,7 +75,7 @@ def _yaml_value(key: str, val) -> str:
 def format_front_matter(metadata: dict) -> str:
     """Format metadata dict as YAML front matter.
 
-    Field order: title, document, date, audience, reply-to.
+    Field order: title, document, date, intent, audience, reply-to.
     Title and values containing YAML-special characters are double-quoted
     with backslash-escaping for embedded quotes, backslashes, and newlines.
     Reply-to is a YAML list of double-quoted strings.

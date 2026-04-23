@@ -9,7 +9,7 @@
 
 """Core data models for paperlint."""
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 
 SCHEMA_VERSION = "1"
 
@@ -42,12 +42,31 @@ class GatedFinding:
 
 
 @dataclass
-class PaperMeta:
-    paper: str
+class Paper:
+    """Website-facing paper record; mailing index is authoritative for metadata."""
+
+    document_id: str
+    mailing_id: str
     title: str
     authors: list[str]
-    target_group: str
-    paper_type: str
+    date: str
+    audience: list[str]
+    intent: str
+    url: str
+    markdown: str
+    meta_source: str  # "mailing" | "tomd" | "merged"
+
+    def as_meta_json_dict(self) -> dict:
+        """Fields persisted to ``meta.json`` (``markdown`` lives only in ``paper.md``)."""
+        d = asdict(self)
+        del d["markdown"]
+        return d
+
+
+@dataclass
+class RunContext:
+    """Run-time-only fields for the LLM pipeline (not written to ``meta.json``)."""
+
     source_file: str
     run_timestamp: str
     model: str

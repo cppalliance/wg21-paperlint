@@ -222,7 +222,7 @@ def _qa_one(path_str: str) -> dict:
     try:
         if ext in _HTML_EXTENSIONS:
             from ..html import convert_html
-            md_text, _ = convert_html(path)
+            md_text, _, _ = convert_html(path)
             m = compute_metrics(md_text, file=str(path))
             return asdict(m)
 

@@ -78,7 +78,7 @@ Optionally add `--max-cap N` to limit *how many* papers to process, after any `-
 
 ## Usage
 
-Paperlint treats the open-std.org mailing index as authoritative for paper metadata (title, authors, audience, paper_type, canonical URL). Every invocation names the mailing explicitly (except when using only `mailing` for index-only work).
+Paperlint treats the open-std.org mailing index as authoritative for paper metadata (title, authors, audience as subgroup codes, intent info/ask, canonical URL). Every invocation names the mailing explicitly (except when using only `mailing` for index-only work).
 
 `--workspace-dir` is the **workspace root**: the same directory is used for input and output — mailing index (`mailings/<mailing-id>.json`), per-paper trees (`paper.md`, `evaluation.json`, …), and `index.json` after a full `run`. The legacy alias `--output-dir` is accepted and means the same path.
 
@@ -126,7 +126,7 @@ Each paper produces a directory with the following files:
 {paper_id}/
   evaluation.json   # findings, references with char offsets, metadata
   paper.md          # markdown conversion of the source paper, with YAML front matter
-  meta.json         # PaperMeta record (title, authors, audience, paper_type, ...)
+  meta.json         # Paper record (document_id, mailing_id, title, authors, audience, intent, …) + _runtime
 ```
 
 The `extracted_char_start` and `extracted_char_end` fields in each reference select the exact evidence text in `paper.md`. This pairing is the contract for front-end citation rendering.
@@ -189,7 +189,7 @@ paperlint/
   orchestrator.py      # Top-level pipeline coordination
   pipeline.py          # Discovery / verify / gate / summary steps
   llm.py               # OpenRouter client + retry/parsing helpers
-  models.py            # Dataclasses (Evidence, Finding, GatedFinding, PaperMeta)
+  models.py            # Dataclasses (Evidence, Finding, GatedFinding, Paper, RunContext)
   extract.py           # tomd-backed paper-to-markdown wrapper + metadata fallback
   mailing.py           # WG21 open-std.org mailing page scraper
   storage.py           # StorageBackend ABC + JsonBackend

@@ -15,20 +15,22 @@ import json
 
 import pytest
 
-from paperlint.models import PaperMeta
+from paperlint.models import Paper
 from paperlint.pipeline import step_discovery
 
 
-def _meta() -> PaperMeta:
-    return PaperMeta(
-        paper="P1",
+def _meta() -> Paper:
+    return Paper(
+        document_id="P1",
+        mailing_id="2026-01",
         title="Test Title",
         authors=["Alice"],
-        target_group="LEWG",
-        paper_type="proposal",
-        source_file="/tmp/p1.html",
-        run_timestamp="2026-01-01T00:00:00+00:00",
-        model="test-model",
+        date="2026-01-01",
+        audience=["LEWG"],
+        intent="ask",
+        url="https://example.com/p1.html",
+        markdown="",
+        meta_source="mailing",
     )
 
 

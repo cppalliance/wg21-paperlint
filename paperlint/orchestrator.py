@@ -32,7 +32,7 @@ import requests
 from paperlint.credentials import ensure_api_keys
 from paperlint.logutil import configure_paperlint_file_logging_if_needed, get_paperlint_logger
 from paperlint.llm import OPENROUTER_MODEL, build_client
-from paperlint.models import SCHEMA_VERSION, PaperMeta
+from paperlint.models import SCHEMA_VERSION, Paper, RunContext
 from paperlint.pipeline import (
     PROMPTS_DIR,
     RUBRIC_PATH,
@@ -48,6 +48,33 @@ from paperlint.suppress import step_suppress_known_fps
 _PKG_ROOT = Path(__file__).resolve().parent
 
 _FETCH_TIMEOUT_SEC = 120
+
+
+def _meta_json_payload(paper: Paper, ctx: RunContext) -> dict:
+    """Serialize ``Paper`` + run context for ``meta.json`` (markdown only in ``paper.md``)."""
+    d = paper.as_meta_json_dict()
+    d["_runtime"] = {
+        "source_file": ctx.source_file,
+        "run_timestamp": ctx.run_timestamp,
+        "model": ctx.model,
+    }
+    return d
+
+
+def _paper_from_meta_json(raw: dict, markdown: str) -> Paper:
+    """Reconstruct :class:`Paper` from ``meta.json`` body (without ``_runtime``)."""
+    return Paper(
+        document_id=raw["document_id"],
+        mailing_id=raw["mailing_id"],
+        title=raw.get("title", ""),
+        authors=list(raw.get("authors") or []),
+        date=raw.get("date", ""),
+        audience=list(raw.get("audience") or []),
+        intent=raw.get("intent", "ask"),
+        url=raw.get("url", ""),
+        markdown=markdown,
+        meta_source=raw.get("meta_source", "mailing"),
+    )
 
 
 def git_sha() -> str:
@@ -112,6 +139,7 @@ def convert_one_paper(
     workspace_dir: Path | None = None,
     source_url: str,
     mailing_meta: dict,
+    mailing_id: str,
     storage: StorageBackend | None = None,
 ) -> dict:
     """Fetch a paper and convert it to markdown, no LLM calls.
@@ -131,9 +159,11 @@ def convert_one_paper(
     print(f"Fetching {paper_id}...")
     paper_path = fetch_paper(paper_id, source_url=source_url)
 
-    clean_text, meta = step_metadata(paper_path, mailing_meta)
+    clean_text, paper, ctx = step_metadata(
+        paper_path, mailing_meta, mailing_id.strip()
+    )
 
-    meta_path = backend.write_meta_json(paper_id, asdict(meta))
+    meta_path = backend.write_meta_json(paper_id, _meta_json_payload(paper, ctx))
     paper_md_path = backend.write_paper_md(paper_id, clean_text)
 
     return {
@@ -141,7 +171,8 @@ def convert_one_paper(
         "paper_path": paper_path,
         "paper_md_path": paper_md_path,
         "meta_path": meta_path,
-        "meta": meta,
+        "paper": paper,
+        "run_context": ctx,
         "clean_text": clean_text,
     }
 
@@ -151,7 +182,7 @@ def load_converted_paper(
     *,
     workspace_dir: Path | None = None,
     storage: StorageBackend | None = None,
-) -> tuple[str, PaperMeta]:
+) -> tuple[str, Paper, RunContext]:
     """Load ``paper.md`` and ``meta.json`` from the workspace (after ``paperlint convert``).
 
     Raises:
@@ -172,29 +203,43 @@ def load_converted_paper(
             f"Expected {md_path} and {meta_path}."
         )
     raw = json.loads(meta_path.read_text(encoding="utf-8"))
-    meta = PaperMeta(
-        paper=raw["paper"],
-        title=raw["title"],
-        authors=raw["authors"],
-        target_group=raw["target_group"],
-        paper_type=raw["paper_type"],
-        source_file=raw["source_file"],
-        run_timestamp=raw["run_timestamp"],
-        model=raw["model"],
+    if "document_id" not in raw:
+        raise ValueError(
+            f"Unsupported meta.json for {pid}: re-run ``paperlint convert`` for this paper."
+        )
+    runtime = raw.pop("_runtime", {})
+    md_text = md_path.read_text(encoding="utf-8")
+    paper = _paper_from_meta_json(raw, markdown=md_text)
+    ctx = RunContext(
+        source_file=runtime.get("source_file", ""),
+        run_timestamp=runtime.get("run_timestamp", ""),
+        model=runtime.get("model", OPENROUTER_MODEL),
     )
-    return md_path.read_text(encoding="utf-8"), meta
+    return md_text, paper, ctx
 
 
-def _base_eval_json(source_url: str, paper_id: str, mailing_meta: dict | None) -> dict:
+def _base_eval_json(
+    source_url: str,
+    paper_id: str,
+    mailing_id: str,
+    mailing_meta: dict | None,
+) -> dict:
     """Build the skeleton eval JSON with whatever metadata is available."""
+    from paperlint.mailing import mailing_row_to_paper
+
     if mailing_meta:
-        title = mailing_meta.get("title", "Unknown")
-        authors = mailing_meta.get("authors", [])
-        audience = mailing_meta.get("subgroup", "Unknown")
+        stub = mailing_row_to_paper(
+            mailing_meta, mailing_id, markdown="", meta_source="mailing"
+        )
+        title = stub.title or "Unknown"
+        authors = stub.authors
+        audience = stub.audience
+        intent = stub.intent
     else:
         title = "Unknown"
         authors = []
-        audience = "Unknown"
+        audience = []
+        intent = ""
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -203,10 +248,13 @@ def _base_eval_json(source_url: str, paper_id: str, mailing_meta: dict | None) -
         "source_url": source_url,
         "pipeline_status": "failed",
         "paper": paper_id.upper(),
+        "mailing_id": mailing_id,
         "title": title,
         "authors": authors,
         "audience": audience,
-        "paper_type": "",
+        "intent": intent,
+        "paper_type": intent,
+        "meta_source": "",
         "generated": datetime.now(timezone.utc).isoformat(),
         "model": OPENROUTER_MODEL,
         "findings_discovered": 0,
@@ -238,6 +286,7 @@ def run_paper_eval(
     workspace_dir: Path | None = None,
     source_url: str = "",
     mailing_meta: dict | None = None,
+    mailing_id: str = "",
     storage: StorageBackend | None = None,
     discovery_passes: int = 3,
 ) -> dict:
@@ -256,6 +305,9 @@ def run_paper_eval(
             "run_paper_eval requires mailing_meta (authoritative from open-std.org). "
             "Callers must resolve the paper through fetch_papers_for_mailing."
         )
+    mid = mailing_id.strip()
+    if not mid:
+        raise ValueError("run_paper_eval requires mailing_id (e.g. 2026-04).")
 
     backend = _resolve_storage(workspace_dir, storage)
     wdir = Path(workspace_dir) if workspace_dir is not None else None
@@ -266,7 +318,7 @@ def run_paper_eval(
 
     # Stage 1: load prior conversion (``paperlint convert``); do not re-fetch or re-tomd.
     try:
-        clean_text, meta = load_converted_paper(
+        clean_text, paper, ctx = load_converted_paper(
             paper_id, workspace_dir=workspace_dir, storage=backend
         )
     except FileNotFoundError:
@@ -282,7 +334,7 @@ def run_paper_eval(
     # Step 1: Discovery → Quote verification → Gate
     try:
         findings = step_discovery(
-            client, clean_text, meta, passes=discovery_passes
+            client, clean_text, paper, passes=discovery_passes
         )
         raw_discovered = len(findings)
 
@@ -293,7 +345,7 @@ def run_paper_eval(
 
         findings = step_verify_quotes(findings, clean_text)
 
-        gated = step_gate(client, clean_text, meta, findings)
+        gated = step_gate(client, clean_text, paper, findings)
 
         backend.write_intermediate(
             paper_id,
@@ -310,24 +362,26 @@ def run_paper_eval(
             file=sys.stderr,
         )
         _log.exception("ANALYSIS FAILED: %s", paper_id, exc_info=True)
-        eval_json = _base_eval_json(source_url, paper_id, mailing_meta)
+        eval_json = _base_eval_json(source_url, paper_id, mid, mailing_meta)
         eval_json["pipeline_status"] = "partial"
-        eval_json["title"] = meta.title
-        eval_json["authors"] = meta.authors
-        eval_json["audience"] = meta.target_group
-        eval_json["paper_type"] = meta.paper_type
+        eval_json["title"] = paper.title
+        eval_json["authors"] = paper.authors
+        eval_json["audience"] = paper.audience
+        eval_json["intent"] = paper.intent
+        eval_json["paper_type"] = paper.intent
+        eval_json["meta_source"] = paper.meta_source
         eval_json["summary"] = "This paper could not be fully evaluated due to an analysis issue."
         _apply_eval_failure_fields(eval_json, "analysis", e)
         backend.write_evaluation_json(paper_id, eval_json)
         return eval_json
 
     # Step 2b: Known-FP suppression (post-gate filter)
-    gated, suppressed = step_suppress_known_fps(gated, meta)
+    gated, suppressed = step_suppress_known_fps(gated, paper, ctx)
     backend.write_intermediate(paper_id, "2c-suppressed", suppressed)
 
     # Step 3: Summary
     passed = [g for g in gated if g.verdict == "PASS"]
-    summary = step_summary_writer(client, meta, len(passed))
+    summary = step_summary_writer(client, paper, len(passed))
 
     # Step 4: Assembly
     references = []
@@ -367,13 +421,16 @@ def run_paper_eval(
         "prompt_hash": prompt_hash(),
         "source_url": source_url,
         "pipeline_status": "complete",
-        "paper": meta.paper,
-        "title": meta.title,
-        "authors": meta.authors,
-        "audience": meta.target_group,
-        "paper_type": meta.paper_type,
-        "generated": meta.run_timestamp,
-        "model": meta.model,
+        "paper": paper.document_id,
+        "mailing_id": paper.mailing_id,
+        "title": paper.title,
+        "authors": paper.authors,
+        "audience": paper.audience,
+        "intent": paper.intent,
+        "paper_type": paper.intent,
+        "meta_source": paper.meta_source,
+        "generated": ctx.run_timestamp,
+        "model": ctx.model,
         "findings_discovered": raw_discovered,
         "findings_passed": len(passed),
         "findings_rejected": len([g for g in gated if g.verdict == "REJECT"]),

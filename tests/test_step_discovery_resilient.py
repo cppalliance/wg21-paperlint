@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from paperlint.models import Evidence, Finding, PaperMeta
+from paperlint.models import Evidence, Finding, Paper
 from paperlint.pipeline import step_discovery
 
 
@@ -29,15 +29,17 @@ def _find(n: int) -> Finding:
 @pytest.mark.parametrize("passes", [2, 3])
 def test_step_discovery_pass_fails_later_pass_can_succeed(passes: int) -> None:
     client = MagicMock()
-    meta = PaperMeta(
-        paper="P",
+    meta = Paper(
+        document_id="P",
+        mailing_id="2026-01",
         title="T",
         authors=[],
-        target_group="G",
-        paper_type="E",
-        source_file="f",
-        run_timestamp="2020-01-01T00:00:00+00:00",
-        model="m",
+        date="",
+        audience=["G"],
+        intent="ask",
+        url="",
+        markdown="",
+        meta_source="mailing",
     )
     call_n = 0
 
@@ -56,15 +58,17 @@ def test_step_discovery_pass_fails_later_pass_can_succeed(passes: int) -> None:
 
 def test_step_discovery_all_passes_fail_raises() -> None:
     client = MagicMock()
-    meta = PaperMeta(
-        paper="P",
+    meta = Paper(
+        document_id="P",
+        mailing_id="2026-01",
         title="T",
         authors=[],
-        target_group="G",
-        paper_type="E",
-        source_file="f",
-        run_timestamp="2020-01-01T00:00:00+00:00",
-        model="m",
+        date="",
+        audience=["G"],
+        intent="ask",
+        url="",
+        markdown="",
+        meta_source="mailing",
     )
     with (
         patch(

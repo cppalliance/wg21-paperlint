@@ -33,7 +33,7 @@ from pathlib import Path
 _REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO))
 
-from paperlint.models import Evidence, Finding, GatedFinding, PaperMeta
+from paperlint.models import Evidence, Finding, GatedFinding, Paper, RunContext
 from paperlint.suppress import (
     _is_bracketed_identifier_layout_wrap,
     _is_intra_word_spacing,
@@ -211,27 +211,31 @@ def _build_finding(defect: str, location: str, quotes: list[str]) -> Finding:
     )
 
 
-def _build_meta(source_file: str) -> PaperMeta:
-    return PaperMeta(
-        paper="test",
+def _build_paper_ctx(source_file: str) -> tuple[Paper, RunContext]:
+    paper = Paper(
+        document_id="TEST",
+        mailing_id="2026-01",
         title="test",
         authors=[],
-        target_group="",
-        paper_type="",
-        source_file=source_file,
-        run_timestamp="",
-        model="",
+        date="",
+        audience=[],
+        intent="ask",
+        url="",
+        markdown="",
+        meta_source="mailing",
     )
+    ctx = RunContext(source_file=source_file, run_timestamp="", model="")
+    return paper, ctx
 
 
-def _try_all_signatures(finding: Finding, meta: PaperMeta) -> str | None:
+def _try_all_signatures(finding: Finding, paper: Paper, ctx: RunContext) -> str | None:
     """Run each shipping signature in dispatcher order, return first match name."""
     for fn in (
         _is_intra_word_spacing,
         _is_toc_location,
         _is_bracketed_identifier_layout_wrap,
     ):
-        m = fn(finding, meta)
+        m = fn(finding, paper, ctx)
         if m is not None:
             return m.signature_name
     return None
@@ -246,8 +250,8 @@ def run_corpus() -> int:
 
     for name, expected_sig, source_file, defect, location, quotes in TEST_CASES:
         finding = _build_finding(defect, location, quotes)
-        meta = _build_meta(source_file)
-        actual_sig = _try_all_signatures(finding, meta)
+        paper, ctx = _build_paper_ctx(source_file)
+        actual_sig = _try_all_signatures(finding, paper, ctx)
 
         ok = actual_sig == expected_sig
         status = "PASS" if ok else "FAIL"
@@ -283,9 +287,9 @@ def run_corpus() -> int:
     actual_kept_count = 0
     for name, expected_sig, source_file, defect, location, quotes in TEST_CASES:
         finding = _build_finding(defect, location, quotes)
-        meta = _build_meta(source_file)
+        paper, ctx = _build_paper_ctx(source_file)
         single_gated = [GatedFinding(finding=finding, verdict="PASS", reason="")]
-        kept, suppressed = step_suppress_known_fps(single_gated, meta)
+        kept, suppressed = step_suppress_known_fps(single_gated, paper, ctx)
         actual_kept_count += len(kept)
         actual_suppressed_count += len(suppressed)
 

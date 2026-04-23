@@ -52,7 +52,7 @@ class StorageBackend(ABC):
 
     @abstractmethod
     def write_meta_json(self, paper_id: str, meta: dict) -> Any:
-        """Persist per-paper metadata (mirrors PaperMeta.asdict())."""
+        """Persist per-paper metadata (``Paper`` fields + optional ``_runtime``)."""
 
     @abstractmethod
     def write_evaluation_json(self, paper_id: str, evaluation: dict) -> Any:

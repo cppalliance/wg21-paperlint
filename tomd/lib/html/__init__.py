@@ -5,17 +5,21 @@ import os
 from pathlib import Path
 
 from .. import format_front_matter
+from ..mailing_merge import merge_yaml_with_mailing
 from . import extract as _extract
 from . import render as _render
 
 _log = logging.getLogger(__name__)
 
 
-def convert_html(path: Path | os.PathLike[str]) -> tuple[str, str | None]:
+def convert_html(
+    path: Path | os.PathLike[str],
+    mailing_meta: dict | None = None,
+) -> tuple[str, str | None, dict[str, str]]:
     """Convert an HTML file to Markdown.
 
     Reads the file as UTF-8 (with replacement for decode errors).
-    Returns (markdown_text, prompts_text_or_none).
+    Returns ``(markdown_text, prompts_text_or_none, provenance)``.
     HTML conversion produces a prompts file only when sections
     cannot be converted cleanly.
     """
@@ -35,9 +39,11 @@ def convert_html(path: Path | os.PathLike[str]) -> tuple[str, str | None]:
 
     body_md = _render.render_body(soup, generator)
 
+    merged_metadata, provenance = merge_yaml_with_mailing(metadata or {}, mailing_meta)
+
     parts = []
-    if metadata:
-        parts.append(format_front_matter(metadata))
+    if merged_metadata:
+        parts.append(format_front_matter(merged_metadata))
 
     if body_md.strip():
         parts.append(body_md.strip())
@@ -60,4 +66,4 @@ def convert_html(path: Path | os.PathLike[str]) -> tuple[str, str | None]:
             prompt_parts.append("")
         prompts = "\n".join(prompt_parts)
 
-    return md, prompts
+    return md, prompts, provenance

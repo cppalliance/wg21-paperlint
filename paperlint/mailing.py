@@ -20,46 +20,53 @@ import requests
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
+from paperlint.models import Paper
+from tomd.lib.mailing_merge import normalize_intent as normalize_paper_type
+from tomd.lib.mailing_merge import parse_audience_codes
+
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.open-std.org/jtc1/sc22/wg21/docs/papers"
 DEFAULT_USER_AGENT = "paperlint/0.1 (+https://github.com/cppalliance/paperlint)"
 
 _MAILING_ANCHOR_RE = re.compile(r"^mailing\d{4}-\d{2}$")
-_PAPER_LINK_PATTERN = re.compile(
-    r"((?:p\d+r\d+|n\d+|sd-\d+))\.([a-z]+)", re.IGNORECASE
-)
+_PAPER_LINK_PATTERN = re.compile(r"((?:p\d+r\d+|n\d+|sd-\d+))\.([a-z]+)", re.IGNORECASE)
 
 
 def _infer_paper_type(title: str, paper_id: str) -> str:
     """Derive paper_type from mailing-index signals alone. No paper-content inspection.
 
+    Returns only ``info`` or ``ask`` (YAML ``intent`` and mailing JSON).
+
     Rules, applied in order — first match wins:
-    - title contains "White Paper" → "white-paper"
-    - title starts with "Info:" → "informational"
-    - title starts with "Ask:" → "proposal"
-    - paper_id starts with "n" (N-paper) → "informational"
-    - paper_id starts with "sd" → "standing-document"
-    - paper_id starts with "p" (P-paper) → "proposal"
-    - otherwise → "proposal" (the authoritative silence default)
+    - title contains "White Paper" → ``info``
+    - title starts with "Info:" → ``info``
+    - title starts with "Ask:" → ``ask``
+    - paper_id starts with "n" (N-paper) → ``info``
+    - paper_id starts with "sd" → ``info``
+    - paper_id starts with "p" (P-paper) → ``ask``
+    - otherwise → ``ask`` (silence default)
     """
     title_s = title.strip()
     title_lower = title_s.lower()
     pid = paper_id.strip().lower()
 
     if "white paper" in title_lower:
-        return "white-paper"
+        return "info"
     if title_s.startswith("Info:"):
-        return "informational"
+        return "info"
     if title_s.startswith("Ask:"):
-        return "proposal"
+        return "ask"
+    if title_s.startswith("Poll:"):
+        return "poll"
+
     if pid.startswith("n"):
-        return "informational"
+        return "info"
     if pid.startswith("sd"):
-        return "standing-document"
+        return "info"
     if pid.startswith("p"):
-        return "proposal"
-    return "proposal"
+        return "ask"
+    return "ask"
 
 
 def _extract_paper_metadata_from_row(
@@ -109,10 +116,12 @@ def _extract_paper_metadata_from_row(
     for link in first_cell.find_all("a", href=True):
         href = link.get("href", "")
         absolute = urllib.parse.urljoin(page_url, href)
-        raw_links.append({
-            "href": absolute,
-            "text": link.text.strip(),
-        })
+        raw_links.append(
+            {
+                "href": absolute,
+                "text": link.text.strip(),
+            }
+        )
 
     for link in first_cell.find_all("a", href=True):
         href = link.get("href", "")
@@ -245,6 +254,36 @@ def fetch_papers_for_mailing(
         return []
 
     return parse_papers_for_mailing(response.text, mailing_id, url)
+
+
+def mailing_row_to_paper(
+    row: dict,
+    mailing_id: str,
+    *,
+    markdown: str,
+    meta_source: str,
+) -> Paper:
+    """Build a :class:`Paper` from one mailing index entry (open-std scrape)."""
+    authors = row.get("authors") or []
+    if isinstance(authors, str):
+        authors = [a.strip() for a in authors.split(",") if a.strip()]
+    elif not isinstance(authors, list):
+        authors = []
+    pid = (row.get("paper_id") or "").strip()
+    document_id = pid.upper() if pid else ""
+    audience = parse_audience_codes(row.get("subgroup") or "")
+    return Paper(
+        document_id=document_id,
+        mailing_id=mailing_id.strip(),
+        title=(row.get("title") or "").strip(),
+        authors=authors,
+        date=(row.get("document_date") or "").strip(),
+        audience=audience,
+        intent=normalize_paper_type(row.get("paper_type")),
+        url=(row.get("url") or "").strip(),
+        markdown=markdown,
+        meta_source=meta_source,
+    )
 
 
 def fetch_mailing_paper_ids(mailing_id: str) -> list[str]:
