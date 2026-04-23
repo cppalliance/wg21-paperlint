@@ -21,11 +21,11 @@ Two modes of operation:
 
 ## 2. Repository Layout
 
-tomd is folded into `cppalliance/wg21-paperlint` — no reason to keep it in a separate repo that causes multiple copies and confusion. A `vendor.md` in the tomd folder pins the upstream repo for reference.
+tomd is folded into `cppalliance/wg21-paperlint` — no reason to keep it in a separate repo that causes multiple copies and confusion.
 
 ```
 cppalliance/wg21-paperlint/      (public — users clone this to replicate)
-├── tomd/                        # PDF/HTML → Markdown (folded in; vendor.md pins upstream)
+├── tomd/                        # PDF/HTML → Markdown (folded in)
 ├── paperlint/
 │   ├── mailing.py               # Scrapes open-std.org mailing index → metadata JSON
 │   ├── extract.py               # Downloads paper, hands local path to tomd
