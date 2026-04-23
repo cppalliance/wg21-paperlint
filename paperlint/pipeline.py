@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -320,6 +321,7 @@ def step_discovery(
     )
 
     accumulated: list[Finding] = []
+    last_pass_exc: Exception | None = None
 
     for pass_idx in range(passes):
         if pass_idx == 0:
@@ -333,20 +335,30 @@ def step_discovery(
             user_content = base_user + prior_block + directive
 
         step_label = "Discovery" if passes == 1 else f"Discovery pass {pass_idx + 1}/{passes}"
-        batch = _run_discovery_call(
-            client,
-            system_prompt=system_prompt,
-            user_content=user_content,
-            step_label=step_label,
-        )
-        raw_count = len(batch)
-        accumulated, n_new = _merge_pass(accumulated, batch)
-        dupes = raw_count - n_new
-        if passes > 1:
-            print(
-                f"  Pass {pass_idx + 1}/{passes}: {raw_count} found, "
-                f"{n_new} new, {dupes} duplicate(s) vs prior"
+        try:
+            batch = _run_discovery_call(
+                client,
+                system_prompt=system_prompt,
+                user_content=user_content,
+                step_label=step_label,
             )
+            raw_count = len(batch)
+            accumulated, n_new = _merge_pass(accumulated, batch)
+            dupes = raw_count - n_new
+            if passes > 1:
+                print(
+                    f"  Pass {pass_idx + 1}/{passes}: {raw_count} found, "
+                    f"{n_new} new, {dupes} duplicate(s) vs prior"
+                )
+        except Exception as e:
+            last_pass_exc = e
+            print(
+                f"  Pass {pass_idx + 1}/{passes} failed: {type(e).__name__}: {e}",
+                file=sys.stderr,
+            )
+
+    if not accumulated and last_pass_exc is not None:
+        raise last_pass_exc
 
     for i, f in enumerate(accumulated, start=1):
         f.number = i

@@ -11,10 +11,18 @@
 
 Runs Discovery -> Quote Verification -> Gate -> Evaluation Writer on a single paper.
 Model calls are delegated to ``paperlint.llm`` (OpenRouter / OpenAI-compatible).
+
+On convert or analysis failure, ``evaluation.json`` includes ``failure_stage``,
+``failure_type``, and ``failure_message``; optional ``failure_traceback`` when
+``PAPERLINT_ERROR_TRACEBACK=1``. See the repository README.
 """
 
 import hashlib
+import json
+import os
 import subprocess
+import sys
+import traceback
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,8 +30,9 @@ from pathlib import Path
 import requests
 
 from paperlint.credentials import ensure_api_keys
+from paperlint.logutil import configure_paperlint_file_logging_if_needed, get_paperlint_logger
 from paperlint.llm import OPENROUTER_MODEL, build_client
-from paperlint.models import SCHEMA_VERSION
+from paperlint.models import SCHEMA_VERSION, PaperMeta
 from paperlint.pipeline import (
     PROMPTS_DIR,
     RUBRIC_PATH,
@@ -108,9 +117,9 @@ def convert_one_paper(
     """Fetch a paper and convert it to markdown, no LLM calls.
 
     Writes ``paper.md`` and ``meta.json`` for the paper through the storage
-    backend (default: a ``JsonBackend`` rooted at ``workspace_dir``). Used by
-    both the convert-only CLI subcommand and ``run_paper_eval`` as the
-    first stage of the AI pipeline.
+    backend (default: a ``JsonBackend`` rooted at ``workspace_dir``). Invoked
+    from the **convert** CLI only. ``run``/``eval`` load existing files via
+    :func:`load_converted_paper` instead of calling this to avoid duplicate work.
     """
     paper_id = paper_id.strip().upper()
     if mailing_meta is None:
@@ -135,6 +144,45 @@ def convert_one_paper(
         "meta": meta,
         "clean_text": clean_text,
     }
+
+
+def load_converted_paper(
+    paper_id: str,
+    *,
+    workspace_dir: Path | None = None,
+    storage: StorageBackend | None = None,
+) -> tuple[str, PaperMeta]:
+    """Load ``paper.md`` and ``meta.json`` from the workspace (after ``paperlint convert``).
+
+    Raises:
+        FileNotFoundError: if either file is missing or ``meta.json`` is invalid.
+    """
+    backend = _resolve_storage(workspace_dir, storage)
+    if not isinstance(backend, JsonBackend):
+        raise TypeError("load_converted_paper requires a JsonBackend (pass workspace_dir).")
+    pid = paper_id.strip().upper()
+    pdir = backend.workspace_dir / pid
+    md_path = pdir / "paper.md"
+    meta_path = pdir / "meta.json"
+    if not md_path.is_file() or not meta_path.is_file():
+        raise FileNotFoundError(
+            f"Missing converted paper artifacts for {pid}. "
+            f"Run: python -m paperlint convert <mailing-id> --workspace-dir {backend.workspace_dir} "
+            f"(use --papers {pid} to convert only this paper). "
+            f"Expected {md_path} and {meta_path}."
+        )
+    raw = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta = PaperMeta(
+        paper=raw["paper"],
+        title=raw["title"],
+        authors=raw["authors"],
+        target_group=raw["target_group"],
+        paper_type=raw["paper_type"],
+        source_file=raw["source_file"],
+        run_timestamp=raw["run_timestamp"],
+        model=raw["model"],
+    )
+    return md_path.read_text(encoding="utf-8"), meta
 
 
 def _base_eval_json(source_url: str, paper_id: str, mailing_meta: dict | None) -> dict:
@@ -170,6 +218,20 @@ def _base_eval_json(source_url: str, paper_id: str, mailing_meta: dict | None) -
     }
 
 
+def _wants_error_traceback_in_json() -> bool:
+    v = os.environ.get("PAPERLINT_ERROR_TRACEBACK", "").strip().lower()
+    return v in ("1", "true", "yes")
+
+
+def _apply_eval_failure_fields(eval_json: dict, stage: str, exc: Exception) -> None:
+    """Attach structured failure data for debugging (additive; optional traceback)."""
+    eval_json["failure_stage"] = stage
+    eval_json["failure_type"] = type(exc).__name__
+    eval_json["failure_message"] = str(exc)
+    if _wants_error_traceback_in_json():
+        eval_json["failure_traceback"] = traceback.format_exc()
+
+
 def run_paper_eval(
     paper_ref: str,
     *,
@@ -179,7 +241,10 @@ def run_paper_eval(
     storage: StorageBackend | None = None,
     discovery_passes: int = 3,
 ) -> dict:
-    """Evaluate one paper. Always writes an evaluation.json, even on failure.
+    """Evaluate one paper. Always writes an evaluation.json, even on analysis failure.
+
+    Does **not** run conversion: ``paper.md`` and ``meta.json`` must already exist
+    (``paperlint convert``). On missing artifacts, raises ``FileNotFoundError``.
 
     mailing_meta is the authoritative metadata from open-std.org's mailing index;
     it must be supplied by the caller (cmd_eval / cmd_run resolve it via
@@ -193,26 +258,26 @@ def run_paper_eval(
         )
 
     backend = _resolve_storage(workspace_dir, storage)
+    wdir = Path(workspace_dir) if workspace_dir is not None else None
+    configure_paperlint_file_logging_if_needed(wdir)
+    _log = get_paperlint_logger()
     ensure_api_keys()
     client = build_client()
 
-    # Stage 1: convert (fetch + tomd + write paper.md/meta.json).
+    # Stage 1: load prior conversion (``paperlint convert``); do not re-fetch or re-tomd.
     try:
-        conv = convert_one_paper(
-            paper_id,
-            source_url=source_url,
-            mailing_meta=mailing_meta,
-            storage=backend,
+        clean_text, meta = load_converted_paper(
+            paper_id, workspace_dir=workspace_dir, storage=backend
         )
+    except FileNotFoundError:
+        raise
     except Exception as e:
-        print(f"  FETCH/CONVERT FAILED: {paper_id} — {e}")
-        eval_json = _base_eval_json(source_url, paper_id, mailing_meta)
-        eval_json["summary"] = "This paper could not be evaluated due to a document retrieval issue."
-        backend.write_evaluation_json(paper_id, eval_json)
-        return eval_json
-
-    clean_text = conv["clean_text"]
-    meta = conv["meta"]
+        print(
+            f"  LOAD CONVERTED PAPER FAILED: {paper_id} — {e}",
+            file=sys.stderr,
+        )
+        _log.exception("LOAD CONVERTED PAPER FAILED: %s", paper_id, exc_info=True)
+        raise
 
     # Step 1: Discovery → Quote verification → Gate
     try:
@@ -240,7 +305,11 @@ def run_paper_eval(
         )
 
     except Exception as e:
-        print(f"  ANALYSIS FAILED: {paper_id} — {e}")
+        print(
+            f"  ANALYSIS FAILED: {paper_id} — {e}",
+            file=sys.stderr,
+        )
+        _log.exception("ANALYSIS FAILED: %s", paper_id, exc_info=True)
         eval_json = _base_eval_json(source_url, paper_id, mailing_meta)
         eval_json["pipeline_status"] = "partial"
         eval_json["title"] = meta.title
@@ -248,6 +317,7 @@ def run_paper_eval(
         eval_json["audience"] = meta.target_group
         eval_json["paper_type"] = meta.paper_type
         eval_json["summary"] = "This paper could not be fully evaluated due to an analysis issue."
+        _apply_eval_failure_fields(eval_json, "analysis", e)
         backend.write_evaluation_json(paper_id, eval_json)
         return eval_json
 

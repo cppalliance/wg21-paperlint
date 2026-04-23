@@ -9,16 +9,21 @@
 
 """Paperlint CLI — evaluate WG21 papers for mechanically verifiable defects.
 
-Usage:
-    python -m paperlint mailing 2026-02 --workspace-dir ./data/
-    python -m paperlint convert 2026-02 --workspace-dir ./data/ --max-cap 50 --max-workers 10
-    python -m paperlint eval 2026-02/P3642R4 --workspace-dir ./data/
-    python -m paperlint run 2026-02 --workspace-dir ./data/ --max-cap 50 --max-workers 10
+Two-step flow (no duplicate conversion in eval/run):
 
-The open-std.org mailing index is authoritative for paper metadata (title,
-authors, audience, paper_type, canonical URL). Every `eval` invocation names
-the mailing and the paper id explicitly; local file paths and bare paper ids
-are not accepted.
+1. **convert** — fetch sources and build ``paper.md`` + ``meta.json`` (no LLM).
+   Limit work with ``--papers P1,P2`` or a single ``--paper P1``.
+2. **eval** (one paper) or **run** (batch) — load those files and run the LLM
+   pipeline to ``evaluation.json`` (requires ``OPENROUTER_API_KEY``).
+
+Example::
+
+    python -m paperlint convert 2026-02 --workspace-dir ./data/ --paper P3642R4
+    python -m paperlint eval 2026-02/P3642R4 --workspace-dir ./data/
+
+The open-std.org mailing index is authoritative for paper metadata. Every
+``eval``/``run``/``convert`` run refreshes ``mailings/<id>.json``. Local file
+paths and bare paper ids are not accepted.
 
 ``--workspace-dir`` (alias: ``--output-dir``) is the JSON-backend root: the same
 directory is written and read for mailing indices, converted papers, and
@@ -122,11 +127,20 @@ def _failure_entry(r: dict) -> dict:
     if r["status"] == "error":
         return {"paper": r["paper"], "error": r.get("error", "")}
     res = r.get("result") or {}
-    return {
+    out: dict = {
         "paper": res.get("paper", r["paper"]),
         "pipeline_status": res.get("pipeline_status"),
         "summary": res.get("summary", ""),
     }
+    for key in (
+        "failure_stage",
+        "failure_type",
+        "failure_message",
+        "failure_traceback",
+    ):
+        if key in res and res[key] is not None:
+            out[key] = res[key]
+    return out
 
 
 def _build_index(workspace_dir: Path, mailing_id: str, results: list[dict]) -> dict:
@@ -195,6 +209,59 @@ _EVAL_CONTRACT_MSG = (
 )
 
 _EVAL_REF_RE = re.compile(r"^(?P<mailing>\d{4}-\d{2})/(?P<paper>[A-Za-z][A-Za-z0-9\-]*)$")
+
+_EPILOG_CONVERT = (
+    "Only paper ids listed in --papers and/or --paper are downloaded and "
+    "converted (not the whole mailing). Run eval or run after this step."
+)
+_EPILOG_RUN = (
+    "Evaluates papers that already have paper.md and meta.json (run convert first). "
+    "Use --papers / --paper to limit which papers to process."
+)
+_EPILOG_EVAL = (
+    "Loads paper.md and meta.json from the workspace; run "
+    "'paperlint convert <mailing> --workspace-dir … --paper <id>' first if missing."
+)
+
+
+def _parse_papers_filter(papers_arg: str | None) -> set[str] | None:
+    """Return uppercase paper ids, or None if the argument is empty (meaning no filter)."""
+    if not papers_arg or not str(papers_arg).strip():
+        return None
+    return {p.strip().upper() for p in str(papers_arg).split(",") if p.strip()}
+
+
+def _merge_paper_selectors(
+    single: str | None, comma_list: str | None
+) -> str | None:
+    """Join ``--paper`` and ``--papers`` into a comma string for :func:`_parse_papers_filter`."""
+    parts: list[str] = []
+    if single and str(single).strip():
+        parts.append(str(single).strip())
+    if comma_list and str(comma_list).strip():
+        parts.extend(
+            p.strip() for p in str(comma_list).split(",") if p and str(p).strip()
+        )
+    if not parts:
+        return None
+    return ",".join(parts)
+
+
+def _filter_papers_list(
+    papers: list[dict], mailing_id: str, want: set[str] | None, *, what: str
+) -> list[dict]:
+    """If *want* is set, keep only those paper_id (case-insensitive) and warn on unknown ids."""
+    if not want:
+        return list(papers)
+    have = {p["paper_id"].upper() for p in papers}
+    missing = sorted(want - have)
+    if missing:
+        print(
+            f"Warning: {what} {mailing_id!r} has no paper_id(s): {', '.join(missing)}",
+            file=sys.stderr,
+        )
+    out = [p for p in papers if p["paper_id"].upper() in want]
+    return out
 
 
 def _parse_eval_ref(ref: str) -> tuple[str, str]:
@@ -275,6 +342,15 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     meta_by_id = {p["paper_id"]: p for p in merged}
 
+    sel = _merge_paper_selectors(
+        getattr(args, "paper", None), getattr(args, "papers", None)
+    )
+    pf = _parse_papers_filter(sel)
+    if pf:
+        papers = _filter_papers_list(papers, mailing_id, pf, what="mailing")
+        if not papers:
+            print("No papers to process after --papers filter.", file=sys.stderr)
+            return 1
     if max_cap > 0:
         papers = papers[:max_cap]
 
@@ -362,6 +438,15 @@ def cmd_convert(args: argparse.Namespace) -> int:
 
     meta_by_id = {p["paper_id"]: p for p in merged}
 
+    sel = _merge_paper_selectors(
+        getattr(args, "paper", None), getattr(args, "papers", None)
+    )
+    pf = _parse_papers_filter(sel)
+    if pf:
+        papers = _filter_papers_list(papers, mailing_id, pf, what="mailing")
+        if not papers:
+            print("No papers to convert after --papers filter.", file=sys.stderr)
+            return 1
     if max_cap > 0:
         papers = papers[:max_cap]
 
@@ -439,6 +524,8 @@ def main() -> int:
     eval_parser = subparsers.add_parser(
         "eval",
         help="Evaluate a single paper via the mailing index",
+        epilog=_EPILOG_EVAL,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     eval_parser.add_argument(
         "paper",
@@ -455,11 +542,28 @@ def main() -> int:
         ),
     )
 
-    run_parser = subparsers.add_parser("run", help="Evaluate all papers in a mailing")
+    run_parser = subparsers.add_parser(
+        "run",
+        help="Evaluate all papers in a mailing",
+        epilog=_EPILOG_RUN,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     run_parser.add_argument("mailing_id", help="Mailing identifier (e.g. 2026-02)")
     _add_workspace_dir_arg(run_parser)
     run_parser.add_argument("--max-cap", type=int, default=0, help="Max papers (0 = all)")
     run_parser.add_argument("--max-workers", type=int, default=10, help="Parallel workers")
+    run_parser.add_argument(
+        "--paper",
+        default=None,
+        metavar="PAPER",
+        help="One paper id (convenience; can combine with --papers)",
+    )
+    run_parser.add_argument(
+        "--papers",
+        default=None,
+        metavar="IDS",
+        help="Comma-separated paper ids to evaluate, then --max-cap (default: entire mailing list)",
+    )
     run_parser.add_argument("--max-processes", type=int, default=None, help=argparse.SUPPRESS)
     run_parser.add_argument(
         "--discovery-passes",
@@ -474,11 +578,25 @@ def main() -> int:
     convert_parser = subparsers.add_parser(
         "convert",
         help="Fetch and convert all papers in a mailing to markdown (no AI eval)",
+        epilog=_EPILOG_CONVERT,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     convert_parser.add_argument("mailing_id", help="Mailing identifier (e.g. 2026-02)")
     _add_workspace_dir_arg(convert_parser)
     convert_parser.add_argument("--max-cap", type=int, default=0, help="Max papers (0 = all)")
     convert_parser.add_argument("--max-workers", type=int, default=10, help="Parallel workers")
+    convert_parser.add_argument(
+        "--paper",
+        default=None,
+        metavar="PAPER",
+        help="One paper id to convert (convenience; can combine with --papers)",
+    )
+    convert_parser.add_argument(
+        "--papers",
+        default=None,
+        metavar="IDS",
+        help="Comma-separated paper ids to convert, then --max-cap (default: entire mailing list)",
+    )
 
     mailing_parser = subparsers.add_parser("mailing", help="Fetch and persist a mailing index")
     mailing_parser.add_argument("mailing_id", help="Mailing identifier (e.g. 2026-02)")

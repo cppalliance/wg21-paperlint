@@ -28,41 +28,95 @@ git clone https://github.com/cppalliance/paperlint.git
 cd paperlint
 pip install -e ./tomd
 pip install -e .
+export OPENROUTER_API_KEY=sk-or-...   # required for eval / run (LLM stages)
 ```
+
+## Quick start (third parties, wg21.org-style output)
+
+Set a workspace directory once; all paths below are under it.
+
+```bash
+export OPENROUTER_API_KEY=sk-or-...
+export WS=./data
+export M=2026-02
+```
+
+**Pipeline order:** *convert* (download source → `paper.md` + `meta.json`, no LLM) → *eval* or *run* (LLM: discovery → … → `evaluation.json`). You do **not** need a separate `mailing` subcommand for normal use: `convert` / `eval` / `run` refresh the open-std [mailing index](paperlint/mailing.py) and write `mailings/<M>.json` as they start.
+
+**What is downloaded?**
+
+- The mailing **index** page is fetched once per command (HTML table of papers). That is *not* every PDF in the month.
+- Only papers you **convert** are downloaded from their canonical URL (and cached under `.paperlint_cache/` in the CWD for `convert`).
+- You never need to convert the whole mailing to evaluate one or a few papers.
+
+**Outputs to drive your own UI** (same shapes sites like wg21.org can ingest): for each paper, `evaluation.json` (findings, references) plus `paper.md` (citations use char offsets in the JSON). After a full `run`, the workspace also has `index.json` for batch summaries.
+
+### A. One paper (minimal)
+
+```bash
+python -m paperlint convert $M --workspace-dir "$WS" --papers P3642R4
+# or: --paper P3642R4
+python -m paperlint eval $M/P3642R4 --workspace-dir "$WS"
+```
+
+### B. Several papers
+
+```bash
+python -m paperlint convert $M --workspace-dir "$WS" --papers P3642R4,N5000R0
+python -m paperlint run $M --workspace-dir "$WS" --papers P3642R4,N5000R0
+# Or run one eval per paper: eval $M/P3642R4, eval $M/N5000R0, etc.
+```
+
+### C. Entire monthly mailing
+
+```bash
+python -m paperlint convert $M --workspace-dir "$WS" --max-cap 0 --max-workers 10
+python -m paperlint run $M --workspace-dir "$WS" --max-cap 0 --max-workers 10
+```
+
+Optionally add `--max-cap N` to limit *how many* papers to process, after any `--papers` filter. Use `--max-workers` to parallelize (threads inside `convert` and `run`).
 
 ## Usage
 
-Paperlint treats the open-std.org mailing index as authoritative for paper metadata (title, authors, audience, paper_type, canonical URL). Every invocation names the mailing explicitly.
+Paperlint treats the open-std.org mailing index as authoritative for paper metadata (title, authors, audience, paper_type, canonical URL). Every invocation names the mailing explicitly (except when using only `mailing` for index-only work).
 
 `--workspace-dir` is the **workspace root**: the same directory is used for input and output — mailing index (`mailings/<mailing-id>.json`), per-paper trees (`paper.md`, `evaluation.json`, …), and `index.json` after a full `run`. The legacy alias `--output-dir` is accepted and means the same path.
 
-Fetch and persist a mailing index (ground-truth paper metadata from open-std.org):
+Commands in logical order:
+
+1. **`mailing`** (optional) — only writes `mailings/<id>.json` from open-std; no downloads of paper sources. Use when you want the index on disk before anything else.
+2. **`convert`** — for each paper selected (entire list, `--papers` subset, or `--max-cap` slice), fetch and convert to `paper.md` + `meta.json`. **No** LLM, no `OPENROUTER_API_KEY` required.
+3. **`eval`** (single paper) or **`run`** (batch) — load existing `paper.md` / `meta.json` and run the LLM pipeline. **Requires** prior `convert` for those papers (or you get a clear error to run `convert` first).
+
+Fetch and persist a mailing index only (optional):
 
 ```bash
 python -m paperlint mailing 2026-02 --workspace-dir ./data/
 ```
 
-Convert all papers in a mailing to markdown — no AI evaluation:
+Convert to markdown (no AI). Examples:
 
 ```bash
+# Full mailing (or use --max-cap)
 python -m paperlint convert 2026-02 --workspace-dir ./data/ --max-cap 50 --max-workers 10
+# One or a few paper ids (comma-separated) — does not download/convert the rest
+python -m paperlint convert 2026-02 --workspace-dir ./data/ --papers P3642R4,N5000R0
+python -m paperlint convert 2026-02 --workspace-dir ./data/ --paper P3642R4
 ```
 
-Evaluate a single paper (mailing-id + paper-id):
+LLM evaluation (after `convert` for the same paper(s)):
 
 ```bash
 python -m paperlint eval 2026-02/P3642R4 --workspace-dir ./data/
 python -m paperlint eval 2026-02/P3642R4 --workspace-dir ./data/ --discovery-passes 5
 ```
 
-Evaluate every paper in a mailing (full pipeline, AI included):
-
 ```bash
 python -m paperlint run 2026-02 --workspace-dir ./data/ --max-cap 50 --max-workers 10
-python -m paperlint run 2026-02 --workspace-dir ./data/ --discovery-passes 1
+python -m paperlint run 2026-02 --workspace-dir ./data/ --papers A,B --discovery-passes 1
 ```
 
-Bare paper-ids (`eval P3642R4`) and local file paths (`eval ./paper.pdf`) are not accepted — the caller must name the mailing.
+Bare paper-ids (`eval P3642R4`) and local file paths (`eval ./paper.pdf`) are not accepted — the caller must use `<mailing-id>/<paper-id>`.
 
 ### Output
 
@@ -94,6 +148,23 @@ export OPENROUTER_API_KEY=sk-or-...
 ```
 
 Or create a `.env` file in the working directory. See `.env.example`.
+
+### Failure details and optional logging
+
+If you run `eval` / `run` **before** `paperlint convert` for that paper, the CLI
+exits with an error (missing `paper.md` / `meta.json`) and does not write
+`evaluation.json` for that case.
+
+When the **analysis** run fails, `evaluation.json` may include additive fields
+`failure_stage` (typically `analysis` in that path), `failure_type`, and
+`failure_message` with the exception text. Set `PAPERLINT_ERROR_TRACEBACK=1` to also
+embed a `failure_traceback` string in the JSON (off by default so production
+outputs stay small).
+
+Optionally log failures to a file: set `PAPERLINT_LOG_FILE` to a path, or set
+`PAPERLINT_LOG_TO_WORKSPACE=1` to append to `<workspace-dir>/paperlint.log` (the
+`--workspace-dir` root must be set). Error lines are also written to **stderr** so
+host tools that capture subprocess output can see them.
 
 ## What this is
 
