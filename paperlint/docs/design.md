@@ -1,12 +1,193 @@
-# Paperlint — Pipeline Design
+# Paperlint — Architecture and Pipeline Design
 
-_Internal design reference for audit and review. This document describes how the pipeline works — it is not part of the public-facing product._
+_Internal design reference for audit and review. This document describes how the system is architected and how the pipeline works — it is not part of the public-facing product._
 
 _Last updated April 23, 2026._
 
 ---
 
-## Pipeline Overview
+## 1. Overview
+
+PaperLint is the data-acquisition and transformation layer at the front of the pipeline. It scrapes open-std.org mailing metadata, downloads papers, and converts them to markdown. After PaperLint populates Postgres, Agora21 runs, then C++ Herald concurrently; PRAGMA also follows. None of these downstream systems ingest the mailing directly — they all read from Postgres.
+
+**Single public repo principle** (Vinnie, Apr 10 huddle): _"Can a user clone the repo and only the repo and replicate the findings? You want the minimum. That from which no single file can be removed and still achieve the result."_
+
+Two modes of operation:
+
+- **Local mode:** JSON files in a workspace directory, no Postgres required. Any user can clone `cppalliance/wg21-paperlint`, run the CLI, and replicate the scrape and conversion steps.
+- **Production mode:** Celery task in the Django app (`wg21-website`), Postgres backend.
+
+---
+
+## 2. Repository Layout
+
+tomd is folded into `cppalliance/wg21-paperlint` — no reason to keep it in a separate repo that causes multiple copies and confusion.
+
+```
+cppalliance/wg21-paperlint/      (public — users clone this to replicate)
+├── tomd/                        # PDF/HTML → Markdown (folded in)
+├── paperlint/
+│   ├── mailing.py               # Scrapes open-std.org mailing index → metadata JSON
+│   ├── extract.py               # Downloads paper, hands local path to tomd
+│   ├── pipeline.py              # Discovery → Gate → Summary (LLM eval steps, suspended)
+│   ├── storage.py               # Backend abstraction: JSON (default) vs Postgres
+│   ├── models.py                # Paper data model (see §4)
+│   ├── orchestrator.py          # High-level: fetch → convert → eval
+│   ├── docs/
+│   │   └── design.md            # This file
+│   └── prompts/                 # LLM prompts (hashed for reproducibility)
+└── pyproject.toml
+```
+
+`cppalliance/wg21-website` (private Django app) imports wg21-paperlint as a Git submodule. The Postgres backend implementation lives in `wg21-website`, not here.
+
+---
+
+## 3. Pipeline Ordering
+
+```
+open-std.org mailing
+        │
+        ▼
+ wg21-paperlint: scrape ──► convert (parallel) ──► eval (suspended)
+        │                        │                       │
+   serial, one             tomd × N papers        LLM × N papers
+   HTTP stream             (minutes / mailing)    (not objective enough
+        │                                          to ship — see note)
+        ▼
+     Postgres
+   ┌────┼────┐
+   ▼    ▼    ▼
+Agora21  C++ Herald  PRAGMA
+```
+
+- Scrape is the serial bottleneck: one request stream to open-std.org.
+- After scrape, tomd conversion is embarrassingly parallel (minutes for a full mailing). tomd is lightweight — no ML, no OCR — so many workers can run concurrently with low memory overhead.
+- **Eval is currently suspended.** Vinnie, Apr 22 2026: _"We have turned off the evaluation of papers for now because it is not as objective as we would like."_ Vinnie redirected contributors toward the PDF/HTML→markdown conversion and paper-revision diff work. The scrape+convert path runs independently.
+- Downstream systems (Agora21, C++ Herald, PRAGMA) read from Postgres — they do not re-scrape the mailing.
+
+---
+
+## 4. Paper Data Model
+
+Canonical Python representation in memory and in the JSON backend:
+
+```python
+@dataclass
+class Paper:
+    document_id: str       # e.g. "P3642R4"
+    mailing_id: str        # e.g. "2026-02"
+    title: str
+    authors: list[str]
+    mailing_date: str      # ISO date of the mailing, e.g. "2026-02-15"
+    publication_date: str  # ISO date from the paper itself, e.g. "2026-01-15"
+    audience: list[str]    # short names: ["LEWG", "SG14"] — no hyphens
+    intent: str            # "ask" | "info" (maps to paper_type in open-std)
+    url: str               # canonical open-std.org URL
+    markdown: str          # output of tomd
+    meta_source: str       # "mailing" | "tomd" | "merged"
+```
+
+`meta_source` records provenance: `"mailing"` = authoritative from open-std scrape; `"tomd"` = extracted by tomd from the paper body; `"merged"` = both sources agreed.
+
+**Metadata authority rule** (Vinnie, Apr 22 huddle): _"The website should always show what comes from the mailing."_ The mailing index is the source of truth for all fields. tomd receives the mailing metadata when invoked and uses it to augment YAML front-matter for fields missing from the source file — this is tomd's responsibility, not paperlint's.
+
+---
+
+## 5. tomd YAML Front-Matter Spec
+
+Fields tomd emits and their canonical forms:
+
+| Field | Correct form | Wrong form |
+|---|---|---|
+| `intent` | `intent: ask` or `intent: info` | `paper-type: informational` |
+| `intent` position | after `date`, before `audience` | any other position |
+| `title` | `title: "A Minimal Coroutine..."` (quoted) | `title: A Minimal Coroutine...` |
+| Audience values | Short names, no hyphens: `LEWG`, `SG16` | Long names: `LEWG Library Evolution`, `SG-16` |
+
+Canonical field order: `title`, `document`, `date`, `intent`, `audience`, `reply-to`.
+
+Audience normalization: wg21.org displays audience values from open-std metadata but must normalize to short names without hyphens. "EWG Evolution" → "EWG", "SG-16" → "SG16". The tag normalization formula is Will's to define.
+
+tomd's contract: extract what's in the source file; if a field is absent from the source, leave it absent and let the mailing metadata fill it in (tomd receives that metadata at invocation time).
+
+---
+
+## 6. Backend Abstraction
+
+Two concrete backends behind the same Python interface (`storage.py`):
+
+**JSON backend** (default — no external dependencies):
+- Workspace directory: `./data/` (configurable)
+- One JSON file per paper, one per mailing index
+- Markdown stored as `.md` files alongside JSON
+- Used for local replication, testing, CI, debugging
+- Invocation: `python -m paperlint run 2026-02 --workspace-dir ./data/`
+
+**Postgres backend** (production):
+- Implemented in `wg21-website` (private), not in this repo
+- Django app calls paperlint functions directly as a Python library — not via subprocess — so paper objects are shared in-memory without serialization overhead
+- `storage.py` here defines only the abstract interface
+
+The JSON backend must work without Postgres installed. The Postgres backend must not be required to run paperlint (Vinnie, Apr 22 huddle): _"It has to be in PaperLint because users need to be able to do it. So that means someone needs to be able to clone the PaperLint repo, run the scraper, and get the JSON into a specific directory."_
+
+JSON is preferred over SQLite for the local backend because files are directly inspectable for debugging (Vinnie, Apr 22 huddle): _"if it's JSON, then people can inspect it. It can do double duty as a debug tool."_
+
+---
+
+## 7. Django Integration
+
+How `wg21-website` (private) calls into `cppalliance/wg21-paperlint` (public):
+
+```python
+# In wg21-website (private):
+from paperlint.orchestrator import convert_one_paper
+from paperlint.mailing import fetch_mailing_index
+
+@app.task
+def process_mailing(mailing_id: str):
+    index = fetch_mailing_index(mailing_id)
+    for paper in index.papers:
+        convert_one_paper(paper, backend=PostgresBackend(db))
+        # eval pipeline suspended; add back when ready
+```
+
+wg21-paperlint is installed as a Git submodule. Django imports it as a Python library, not via subprocess.
+
+**Current state:** mailing detection (polling open-std.org for new mailings) lives in the Django app. Long-term intent (Vinnie, Apr 22 huddle): move it into paperlint so the full pipeline is runnable without Django. Not yet done; tracked as a pending item (see §10).
+
+---
+
+## 8. CLI Contracts
+
+Each stage is independently runnable with JSON files as I/O:
+
+```bash
+# Fetch and scrape mailing index only
+python -m paperlint mailing 2026-02 --workspace-dir ./data/
+
+# Convert all papers to markdown (no LLM, parallel)
+python -m paperlint convert 2026-02 --workspace-dir ./data/ [--max-workers 10]
+
+# Run full eval pipeline on one paper (suspended; for future use)
+python -m paperlint eval 2026-02/P3642R4 --workspace-dir ./data/
+
+# Batch eval all papers in a mailing (suspended; for future use)
+python -m paperlint run 2026-02 --workspace-dir ./data/ [--max-cap 10]
+
+# tomd standalone (paperlint downloads the paper first; tomd receives local path)
+python -m tomd 2026-02/P3642R4 --workspace-dir ./data/
+```
+
+CLI requires `<mailing-id>/<paper-id>` form; bare paper-id or local path returns a clean error (decided in PR #43).
+
+---
+
+## 9. Output Schema and Pipeline Reference
+
+_The following sections are preserved verbatim from the pipeline design reference._
+
+### Pipeline Overview
 
 ```
 Paper (HTML or PDF via mailing-index URL — local paths are not accepted)
@@ -67,7 +248,7 @@ Step 4: ASSEMBLY (compute, no model)
 
 ---
 
-## Evidence Model
+### Evidence Model
 
 Each finding carries an array of evidence — exact quotes from the source document with their locations:
 
@@ -82,7 +263,7 @@ Each quote is programmatically verified as a substring of the source text before
 
 ---
 
-## JSON Mode
+### JSON Mode
 
 Every pipeline LLM step uses JSON mode (`response_format: {"type": "json_object"}` on OpenRouter). Models return structured JSON parsed with `json.loads()`. `_parse_json()` tolerates minor formatting issues for robustness.
 
@@ -90,7 +271,7 @@ Every pipeline LLM step uses JSON mode (`response_format: {"type": "json_object"
 
 ---
 
-## Text Extraction
+### Text Extraction
 
 | Source | Function | Library | Used by |
 |--------|----------|---------|---------|
@@ -101,7 +282,7 @@ Text extraction produces clean text. Metadata and LLM stages receive the same ex
 
 ---
 
-## Models
+### Models
 
 | Step | Model | Provider | Mode |
 |------|-------|----------|------|
@@ -114,9 +295,9 @@ All LLM calls route through OpenRouter. Paper fetch uses `requests` with a timeo
 
 ---
 
-## Output Schema
+### Output Schema
 
-### Per-paper: `evaluation.json`
+#### Per-paper: `evaluation.json`
 
 ```json
 {
@@ -158,7 +339,7 @@ All LLM calls route through OpenRouter. Paper fetch uses `requests` with a timeo
 
 `pipeline_status` is one of `complete`, `failed`, or `partial` when present on degraded runs.
 
-### Per-mailing: `index.json` (batch mode only)
+#### Per-mailing: `index.json` (batch mode only)
 
 ```json
 {
@@ -182,7 +363,7 @@ All LLM calls route through OpenRouter. Paper fetch uses `requests` with a timeo
 
 `succeeded` counts papers whose `pipeline_status` is `complete`. `failed` counts HTTP/exceptions plus `pipeline_status` of `failed` or `partial`. `partial` is the count of papers that stopped in `partial` status.
 
-### Intermediate artifacts (per-paper, for debugging)
+#### Intermediate artifacts (per-paper, for debugging)
 
 ```
 {workspace_dir}/{paper_id}/
@@ -196,7 +377,7 @@ All LLM calls route through OpenRouter. Paper fetch uses `requests` with a timeo
 
 ---
 
-## Versioning
+### Versioning
 
 Each evaluation carries two identifiers:
 - **`paperlint_sha`** — git commit hash. Tracks which code produced this.
@@ -206,7 +387,7 @@ Rerun rule: prompt_hash changed → full rerun. Unchanged → skip.
 
 ---
 
-## Invocation
+### Invocation
 
 ```bash
 python -m paperlint eval 2026-02/P3642R4 --workspace-dir ./output/
@@ -216,7 +397,7 @@ python -m paperlint mailing 2026-02 --workspace-dir ./data/
 
 ---
 
-## Dependencies
+### Dependencies
 
 ```
 openai             # OpenRouter API (all model calls)
@@ -229,7 +410,7 @@ requests           # HTTP (paper fetching, mailing scraper)
 
 ---
 
-## Environment
+### Environment
 
 ```
 OPENROUTER_API_KEY=sk-or-...
@@ -239,7 +420,7 @@ OPENROUTER_API_KEY=sk-or-...
 
 ---
 
-## Known Limitations
+### Known Limitations
 
 - **Context window:** Papers exceeding ~200K tokens cannot be processed in a single Discovery call.
 - **PDF extraction:** docling / pymupdf quality varies by WG21 PDF toolchain.
@@ -248,7 +429,7 @@ OPENROUTER_API_KEY=sk-or-...
 
 ---
 
-## Prompts
+### Prompts
 
 | Stage | File | Role |
 |-------|------|------|
@@ -259,3 +440,12 @@ OPENROUTER_API_KEY=sk-or-...
 | Extensions | `prompts/extensions/*.md` | Hashed with prompts; optional future wiring |
 
 The prompts are the product. The orchestrator is the plumbing.
+
+---
+
+## 10. Open Questions
+
+Decisions not yet finalized as of Apr 23, 2026:
+
+- **GitHub issues per paper:** Where does per-paper issue tracking live once eval ships? `wg21.link/PXXXX/github` works as a URL pattern; where this is hosted and how paperlint links to it is unresolved.
+- **Mailing detection in paperlint vs. Django:** Vinnie's stated intent is to move mailing detection into the paperlint repo so the full pipeline can run without Django. Currently lives in `wg21-website`. Not yet scheduled.
