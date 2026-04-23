@@ -133,6 +133,18 @@ paperlint/
 tomd/                  # Bundled PDF/HTML to markdown converter
 ```
 
+## Tests
+
+From the repository root, install the bundled converter, then paperlint with test extras (pulls in `pytest`, `mistune`, `pymupdf` for import-time dependencies):
+
+```bash
+pip install -e ./tomd
+pip install -e ".[test]"
+pytest tests/
+```
+
+Pytest is configured so the repo root is on `PYTHONPATH`, which lets `import tomd` resolve the vendored `tomd/` tree even before `pip install -e ./tomd`. Paperlint’s extract tests live in `tests/test_paperlint_extract.py` so a combined `pytest tests/ tomd/tests/` run does not collide with `tomd/tests/test_extract.py` on the module name `test_extract`. Running `tomd`’s own tests (`pytest tomd/tests/`) still requires `pip install -e ./tomd` (or the step above) so `mistune` and other `tomd` dependencies are present.
+
 ## License
 
 Copyright (c) 2026 Sergio DuBois (sentientsergio@gmail.com)

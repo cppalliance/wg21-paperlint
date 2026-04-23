@@ -9,6 +9,10 @@
 
 """Tests for the tomd-backed paperlint.extract wrapper.
 
+Kept as ``test_paperlint_extract.py`` (not ``test_extract.py``) so collecting
+both paperlint and vendored ``tomd/tests/`` in one pytest run does not collide
+on the module name ``test_extract``.
+
 Covers:
 - Dispatch by file suffix to tomd's HTML / PDF converters.
 - ``_apply_metadata_fallback`` injects only the fields that are missing
