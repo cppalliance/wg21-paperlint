@@ -28,7 +28,7 @@ from paperlint.llm import (
     extract_response_text,
     log_usage,
     parse_json,
-    strip_fences,
+    clean_envelope,
 )
 from paperlint.models import Evidence, Finding, GatedFinding, PaperMeta
 
@@ -148,7 +148,7 @@ def _discovery_json_schema() -> str:
         "\n\n## Output Format\n\n"
         "Return ONLY a JSON object with this structure:\n"
         '{"findings": [\n'
-        '  {\n'
+        "  {\n"
         '    "number": 1,\n'
         '    "title": "short title",\n'
         '    "category": "rubric code e.g. 1.2",\n'
@@ -157,13 +157,13 @@ def _discovery_json_schema() -> str:
         '    "axiom": "ground truth source",\n'
         '    "evidence": [\n'
         '      {"location": "§X.Y or section name", "quote": "exact text from the paper"}\n'
-        '    ]\n'
-        '  }\n'
-        ']}\n\n'
+        "    ]\n"
+        "  }\n"
+        "]}\n\n"
         "Each evidence quote must be EXACT text from the paper — copy precisely, "
         "character for character. Do not paraphrase. Do not combine multiple passages "
         "into one quote. Use separate evidence entries for each passage.\n\n"
-        "If no findings, return {\"findings\": []}.\n"
+        'If no findings, return {"findings": []}.\n'
         "Return ONLY the JSON."
     )
 
@@ -308,11 +308,13 @@ def step_discovery(
     rubric_text = RUBRIC_PATH.read_text(encoding="utf-8")
     skill_text = (PROMPTS_DIR / "1-discovery.md").read_text(encoding="utf-8")
     json_schema = _discovery_json_schema()
-    system_prompt = f"{skill_text}\n\n---\n\n# Evaluation Rubric\n\n{rubric_text}{json_schema}"
+    system_prompt = (
+        f"{skill_text}\n\n---\n\n# Evaluation Rubric\n\n{rubric_text}{json_schema}"
+    )
 
     base_user = (
-        f"<paper title=\"{meta.paper} — {meta.title}\" "
-        f"target_group=\"{meta.target_group}\" "
+        f'<paper title="{meta.paper} — {meta.title}" '
+        f'target_group="{meta.target_group}" '
         f"authors=\"{', '.join(meta.authors)}\">\n"
         f"{clean_text}\n"
         f"</paper>\n\n"
@@ -334,7 +336,9 @@ def step_discovery(
             )
             user_content = base_user + prior_block + directive
 
-        step_label = "Discovery" if passes == 1 else f"Discovery pass {pass_idx + 1}/{passes}"
+        step_label = (
+            "Discovery" if passes == 1 else f"Discovery pass {pass_idx + 1}/{passes}"
+        )
         try:
             batch = _run_discovery_call(
                 client,
@@ -397,7 +401,7 @@ def step_verify_quotes(findings: list[Finding], source_text: str) -> list[Findin
                 else:
                     ev.verified = False
                     status = "MISS"
-            print(f"    #{f.number} [{status}] \"{ev.quote[:60]}\"")
+            print(f'    #{f.number} [{status}] "{ev.quote[:60]}"')
 
         if f.evidence and all(ev.verified for ev in f.evidence):
             verified_findings.append(f)
@@ -430,7 +434,7 @@ def step_gate(
     findings_text = _format_findings_for_gate(findings)
 
     user_content = (
-        f"<paper title=\"{meta.paper} — {meta.title}\">\n"
+        f'<paper title="{meta.paper} — {meta.title}">\n'
         f"{paper_text}\n"
         f"</paper>\n\n"
         f"{findings_text}"
@@ -441,7 +445,7 @@ def step_gate(
         "Return ONLY a JSON object:\n"
         '{"verdicts": [\n'
         '  {"finding_number": 1, "verdict": "PASS", "reason": "...", "judgment": false}\n'
-        ']}\n'
+        "]}\n"
         "verdict must be PASS, REJECT, or REFER.\n"
         "judgment: true if reaching this verdict required judgment beyond mechanical verification, false if purely mechanical.\n"
         "Return ONLY the JSON."
@@ -491,7 +495,9 @@ def step_gate(
     verdict_map = {v["finding_number"]: v for v in verdicts}
     judgment_rejections = 0
     for f in findings:
-        v = verdict_map.get(f.number, {"verdict": "REFER", "reason": "No verdict returned"})
+        v = verdict_map.get(
+            f.number, {"verdict": "REFER", "reason": "No verdict returned"}
+        )
         verdict = v.get("verdict", "REFER").upper()
         reason = v.get("reason", "")
         used_judgment = v.get("judgment", False)
@@ -563,7 +569,7 @@ def step_summary_writer(client: openai.OpenAI, meta: PaperMeta, n_findings: int)
 
     raw = extract_response_text(response)
     try:
-        parsed = json.loads(strip_fences(raw))
+        parsed = json.loads(clean_envelope(raw))
         summary = parsed.get("summary", f"Evaluation of {meta.paper}.")
     except json.JSONDecodeError:
         summary = f"Evaluation of {meta.paper} — {meta.title}."

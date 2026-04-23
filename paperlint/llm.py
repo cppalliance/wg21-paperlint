@@ -20,6 +20,7 @@ import openai
 
 from paperlint.credentials import resolve_openrouter_base_url
 
+
 OPENROUTER_MODEL = "anthropic/claude-opus-4.6"
 OPENROUTER_SONNET = "anthropic/claude-sonnet-4.6"
 
@@ -67,13 +68,19 @@ def call_with_retry(client: openai.OpenAI, step: str, **kwargs):
     for attempt in range(MAX_RETRIES):
         try:
             return client.chat.completions.create(**kwargs)
-        except (openai.RateLimitError, openai.APIConnectionError, openai.APITimeoutError) as e:
+        except (
+            openai.RateLimitError,
+            openai.APIConnectionError,
+            openai.APITimeoutError,
+        ) as e:
             if attempt == MAX_RETRIES - 1:
                 log_error(step, e, model=model)
                 raise
             wait = RETRY_BASE_DELAY * (attempt + 1)
             label = type(e).__name__
-            print(f"  [{step}] {label}. Waiting {wait}s ({attempt + 1}/{MAX_RETRIES})...")
+            print(
+                f"  [{step}] {label}. Waiting {wait}s ({attempt + 1}/{MAX_RETRIES})..."
+            )
             time.sleep(wait)
         except Exception as e:
             log_error(step, e, model=model)
@@ -99,17 +106,20 @@ def extract_response_text(response) -> str:
     return msg.content if msg and msg.content else ""
 
 
-def strip_fences(raw: str) -> str:
+def clean_envelope(raw: str) -> str:
     raw = raw.strip()
+
     if raw.startswith("```"):
-        raw = raw[raw.index("\n") + 1:] if "\n" in raw else raw[3:]
-    if raw.endswith("```"):
-        raw = raw[: raw.rfind("```")].strip()
+        raw = raw[raw.index("\n") + 1 :] if "\n" in raw else raw[3:]
+
+    if "`json" in raw:
+        raw = raw[raw.rfind("`json") + 5 :].strip("\n")
+
     return raw
 
 
 def parse_json(raw: str, step: str = "") -> dict | list:
-    stripped = strip_fences(raw)
+    stripped = clean_envelope(raw)
     decoder = json.JSONDecoder()
     try:
         return json.loads(stripped)
