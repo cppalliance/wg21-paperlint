@@ -8,7 +8,7 @@
 
 ### tomd
 
-tomd is a deterministic, single-dependency PDF-to-Markdown converter purpose-built for WG21 committee papers. Its core idea is *dual-path extraction with confidence scoring* - every page is processed through two independent text extraction algorithms (MuPDF structured dict and raw spatial character assembly), and their outputs are compared at the word level. When the two paths agree, the result is emitted with high confidence. When they disagree, the MuPDF version goes into the output with an HTML comment warning, and both versions are written to a companion `.prompts.md` file for human-directed LLM reconciliation.
+tomd is a deterministic, single-dependency PDF-to-Markdown converter purpose-built for WG21 committee papers. Its core idea is _dual-path extraction with confidence scoring_ - every page is processed through two independent text extraction algorithms (MuPDF structured dict and raw spatial character assembly), and their outputs are compared at the word level. When the two paths agree, the result is emitted with high confidence. When they disagree, the MuPDF version goes into the output with an HTML comment warning, and both versions are written to a companion `.prompts.md` file for human-directed LLM reconciliation.
 
 The architecture is a deep pipeline of specialized modules: header/footer stripping, monospace detection via triple-signal analysis, table detection from columnar geometry, heading classification using section numbering + font size + font weight + known section names, dehyphenation, cross-page paragraph joining, and link extraction from PDF annotations. Every structural decision (heading, code, table, list) requires agreement from multiple signals before it earns high confidence. The only external dependency is PyMuPDF.
 
@@ -18,37 +18,37 @@ tomd does not call any LLM or external API. It produces markdown deterministical
 
 The CppDigest converter is a URL-oriented batch processing tool designed for CI/CD automation. It accepts a JSON list of URLs, detects whether each is HTML or PDF, and converts them to markdown. For HTML, it uses Pandoc with lxml preprocessing and extensive regex-based post-processing. For PDF, it runs a three-tier fallback chain: docling (a document-understanding ML library), then pdfplumber (simpler text extraction), then OpenRouter Vision API (renders pages to images, sends to GPT-4o or similar model for OCR-style extraction).
 
-The tool's philosophy is *try everything until something works*. Each tier's output is checked by an `is_readable()` heuristic (length, character ratio, slash density), and the first tier that passes is used. No structural analysis, heading detection, or multi-signal classification is attempted in the PDF path - whatever the upstream library or LLM returns is the final output. The project includes GitHub Actions workflow integration, artifact management, and an API-based push mechanism for deploying results to other repositories.
+The tool's philosophy is _try everything until something works_. Each tier's output is checked by an `is_readable()` heuristic (length, character ratio, slash density), and the first tier that passes is used. No structural analysis, heading detection, or multi-signal classification is attempted in the PDF path - whatever the upstream library or LLM returns is the final output. The project includes GitHub Actions workflow integration, artifact management, and an API-based push mechanism for deploying results to other repositories.
 
 ---
 
 ## Comparison
 
-| Dimension | tomd | CppDigest converter |
-|---|---|---|
-| **Input** | Local PDF files (glob patterns) | URLs (JSON list, HTML or PDF) |
-| **PDF approach** | Deterministic dual-path extraction with confidence scoring | Three-tier fallback: docling -> pdfplumber -> OpenRouter Vision LLM |
-| **HTML support** | Not yet (planned) | Yes, via Pandoc + lxml + post-processing |
-| **External dependencies** | PyMuPDF only | docling, pdfplumber, PyMuPDF, Pillow, Pandoc, lxml, pypandoc, requests, python-dotenv |
-| **LLM usage** | None (deferred to companion file for human use) | OpenRouter Vision API as last-resort fallback |
-| **Structure detection** | Multi-signal: section numbers, font size, font weight, known names, line geometry, dual-path agreement | Delegated entirely to upstream libraries (docling, pdfplumber) or LLM |
-| **Heading classification** | Section-number depth + font-size ranking + known-name matching + bold detection, with validated nesting | Whatever upstream produces |
-| **Table detection** | Custom columnar geometry analysis on MuPDF blocks | Whatever upstream produces |
-| **Code block detection** | Triple-signal monospace analysis (font name, glyph width uniformity, glyph spacing uniformity) | Whatever upstream produces |
-| **Confidence tracking** | Four-level enum (HIGH, MEDIUM, LOW, UNCERTAIN) on every section | Binary: `is_readable()` pass/fail per entire document |
-| **Uncertain output** | HTML comment markers + companion prompts file with both extraction versions | Silent - no uncertainty signaling |
-| **WG21-specific features** | YAML front matter from metadata, known section names, TOC detection and removal | None |
-| **CI/CD integration** | None (CLI tool) | GitHub Actions workflow with artifact upload and cross-repo push |
-| **Batch processing** | Glob patterns for local files | JSON URL list with result.json summary |
-| **Cost** | Free (no API calls) | Free for tiers 1-2; OpenRouter API costs for tier 3 |
-| **Reproducibility** | Fully deterministic - same PDF always produces same output | Non-deterministic when LLM fallback is used |
-| **Codebase size** | ~12 Python files, ~2000 lines of specialized logic | ~5 Python files, ~600 lines (much delegated to libraries) |
+| Dimension                  | tomd                                                                                                    | CppDigest converter                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **Input**                  | Local PDF files (glob patterns)                                                                         | URLs (JSON list, HTML or PDF)                                                         |
+| **PDF approach**           | Deterministic dual-path extraction with confidence scoring                                              | Three-tier fallback: docling -> pdfplumber -> OpenRouter Vision LLM                   |
+| **HTML support**           | Yes, via DOM traversal with generator-specific extraction                                               | Yes, via Pandoc + lxml + post-processing                                              |
+| **External dependencies**  | PyMuPDF only                                                                                            | docling, pdfplumber, PyMuPDF, Pillow, Pandoc, lxml, pypandoc, requests, python-dotenv |
+| **LLM usage**              | None (deferred to companion file for human use)                                                         | OpenRouter Vision API as last-resort fallback                                         |
+| **Structure detection**    | Multi-signal: section numbers, font size, font weight, known names, line geometry, dual-path agreement  | Delegated entirely to upstream libraries (docling, pdfplumber) or LLM                 |
+| **Heading classification** | Section-number depth + font-size ranking + known-name matching + bold detection, with validated nesting | Whatever upstream produces                                                            |
+| **Table detection**        | Custom columnar geometry analysis on MuPDF blocks                                                       | Whatever upstream produces                                                            |
+| **Code block detection**   | Triple-signal monospace analysis (font name, glyph width uniformity, glyph spacing uniformity)          | Whatever upstream produces                                                            |
+| **Confidence tracking**    | Four-level enum (HIGH, MEDIUM, LOW, UNCERTAIN) on every section                                         | Binary: `is_readable()` pass/fail per entire document                                 |
+| **Uncertain output**       | HTML comment markers + companion prompts file with both extraction versions                             | Silent - no uncertainty signaling                                                     |
+| **WG21-specific features** | YAML front matter from metadata, known section names, TOC detection and removal                         | None                                                                                  |
+| **CI/CD integration**      | None (CLI tool)                                                                                         | GitHub Actions workflow with artifact upload and cross-repo push                      |
+| **Batch processing**       | Glob patterns for local files                                                                           | JSON URL list with result.json summary                                                |
+| **Cost**                   | Free (no API calls)                                                                                     | Free for tiers 1-2; OpenRouter API costs for tier 3                                   |
+| **Reproducibility**        | Fully deterministic - same PDF always produces same output                                              | Non-deterministic when LLM fallback is used                                           |
+| **Codebase size**          | ~12 Python files, ~2000 lines of specialized logic                                                      | ~5 Python files, ~600 lines (much delegated to libraries)                             |
 
 ### Philosophical difference
 
-tomd treats PDF conversion as a *precision problem* - it extracts maximum information from the PDF's own metadata (fonts, coordinates, spans) and cross-validates using independent extraction paths. It would rather flag uncertainty than silently produce wrong structure.
+tomd treats PDF conversion as a _precision problem_ - it extracts maximum information from the PDF's own metadata (fonts, coordinates, spans) and cross-validates using independent extraction paths. It would rather flag uncertainty than silently produce wrong structure.
 
-The CppDigest converter treats it as a *availability problem* - it tries increasingly expensive methods until one produces readable output, prioritizing "something works" over structural accuracy. It trades precision for breadth (handles HTML too) and operational convenience (CI pipeline, URL-based input).
+The CppDigest converter treats it as a _availability problem_ - it tries increasingly expensive methods until one produces readable output, prioritizing "something works" over structural accuracy. It trades precision for breadth (handles HTML too) and operational convenience (CI pipeline, URL-based input).
 
 ### Where they complement each other
 
@@ -100,10 +100,10 @@ PDF file
 
 MuPDF's `get_text("dict")` returns pre-grouped blocks/lines/spans based on its internal layout analysis. This is usually good but can merge or split text incorrectly, especially with multi-column layouts, footnotes, or complex formatting. The spatial path starts from raw character positions and applies four coordinate rules:
 
-1. Horizontal close -> same word (gap < avg_font_size * WORD_GAP_RATIO)
+1. Horizontal close -> same word (gap < avg_font_size \* WORD_GAP_RATIO)
 2. Horizontal far -> word break (insert space)
 3. Vertical close + left reset -> line continuation in same paragraph
-4. Vertical far -> paragraph break (gap > avg_font_size * PARA_SPACING_RATIO)
+4. Vertical far -> paragraph break (gap > avg_font_size \* PARA_SPACING_RATIO)
 
 When both paths produce the same words in the same order (>= 85% overlap), MuPDF's grouping is trusted. When they disagree, something unusual is happening in the PDF layout - the disagreement itself is the signal that human review (or LLM assistance) is needed.
 
@@ -131,7 +131,6 @@ Two-of-three agreement, or signal 3 alone (strong), or signal 1 alone (fallback)
 
 ### Where tomd might fall short
 
-- **No HTML support yet.** Many WG21 papers are published as HTML (especially from newer toolchains like mpark/wg21 or bikeshed). tomd currently handles only PDF.
 - **Page-level granularity for uncertainty.** When the two extraction paths disagree, the entire page becomes one UNCERTAIN section. A paragraph-level or block-level comparison would produce more targeted uncertainty markers and less work for the human reviewer.
 - **Table detection is geometry-only.** It relies on columnar x-gap patterns in MuPDF blocks. Tables without clear columnar alignment (e.g., tables rendered with ruled lines but no x-gaps between cells) may be missed. Tables with merged cells or complex spans are likely mishandled.
 - **No OCR capability.** Scanned PDFs or PDFs with embedded images containing text will produce empty or garbage output. There is no image rendering or vision model fallback.
@@ -146,7 +145,7 @@ Two-of-three agreement, or signal 3 alone (strong), or signal 1 alone (fallback)
 
 ### Pipeline
 
-```
+````
 URL list (JSON)
   |
   v
@@ -183,7 +182,7 @@ URL list (JSON)
 [result.json] -- summary of successes/failures
 [zip_folder]  -- zip output directory
 [push_via_github_api.py] -- optional: push .md files to target repo via Git blob/tree/commit API
-```
+````
 
 ### The three PDF tiers in detail
 

@@ -19,6 +19,7 @@ _AUDIENCE_CODE_RE = re.compile(
     r"\b(WG21|LEWG|LWG|EWG|CWG|SG\d+)\b",
     re.IGNORECASE,
 )
+_ALL_OF_WG21_RE = re.compile(r"all\s+of\s+wg21", re.IGNORECASE)
 
 
 def parse_audience_codes(subgroup: str) -> list[str]:
@@ -26,7 +27,7 @@ def parse_audience_codes(subgroup: str) -> list[str]:
     if not subgroup or not str(subgroup).strip():
         return ["WG21"]
     s = str(subgroup).strip()
-    if re.search(r"(?i)all\s+of\s+wg21", s):
+    if _ALL_OF_WG21_RE.search(s):
         return ["WG21"]
     out: list[str] = []
     seen: set[str] = set()

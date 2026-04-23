@@ -36,10 +36,11 @@ _PAPER_LINK_PATTERN = re.compile(r"((?:p\d+r\d+|n\d+|sd-\d+))\.([a-z]+)", re.IGN
 def _infer_paper_type(title: str, paper_id: str) -> str:
     """Derive paper_type from mailing-index signals alone. No paper-content inspection.
 
-    Returns only ``info`` or ``ask`` (YAML ``intent`` and mailing JSON).
+    Returns ``info``, ``ask``, or ``poll`` (YAML ``intent`` and mailing JSON).
 
     Rules, applied in order — first match wins:
     - title contains "White Paper" → ``info``
+    - title contains "Poll" → ``poll``
     - title starts with "Info:" → ``info``
     - title starts with "Ask:" → ``ask``
     - paper_id starts with "n" (N-paper) → ``info``

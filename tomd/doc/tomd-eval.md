@@ -10,7 +10,7 @@ April 2026, by Vinnie Falco
 
 tomd's core design is smarter than anything else in the rule-based PDF-to-Markdown space. Dual extraction paths with multi-signal confidence scoring, companion prompt files for selective LLM escalation, and WG21-specific metadata intelligence represent a genuine advance over the single-pipeline approaches used by PyMuPDF4LLM and similar tools.<sup>1</sup> The architecture document reveals a developer who thinks carefully about the hard problem - structural analysis of ambiguous PDF content.
 
-The dominant dynamic shaping tomd's design quality is a failure-signaling deficit that pervades the API surface and cascades into four compound weaknesses. `convert_pdf` returns `("", None)` for both empty documents and unreadable PDFs<sup>3</sup> - two fundamentally different conditions collapsed into identical output. This overloaded return value combines with bare `except Exception` handling and non-atomic output writes to create a tool that silently produces ambiguous results when it fails - the opposite of the structural honesty the architecture document demands.
+The dominant dynamic shaping tomd's design quality is a failure-signaling deficit that pervades the API surface and cascades into four compound weaknesses. `convert_pdf` now returns `(markdown_text, prompts_text_or_None, provenance)`. Failure and skip states should be described in terms of that structured result. This overloaded return value combines with bare `except Exception` handling and non-atomic output writes to create a tool that silently produces ambiguous results when it fails - the opposite of the structural honesty the architecture document demands.
 
 The most important finding is the complete absence of tests. For a tool that performs complex multi-signal structural analysis on variable PDF input, every public interface is an unverified promise. Combined with no CI and an unpinned PyMuPDF dependency, this creates a verification vacuum where the dual-extraction algorithm's correctness is defended only by manual inspection.
 
@@ -148,11 +148,11 @@ The gap is operational. Error design, testing, CI, dependency pinning, packaging
 
 ---
 
-Bloch, J. "How to Design a Good API and Why it Matters." *Companion to OOPSLA*, 2006.
+Bloch, J. "How to Design a Good API and Why it Matters." _Companion to OOPSLA_, 2006.
 
 Boost Contributor Checklist.
 
-Cwalina, K. and Abrams, B. *Framework Design Guidelines.* Addison-Wesley, 2009.
+Cwalina, K. and Abrams, B. _Framework Design Guidelines._ Addison-Wesley, 2009.
 
 OpenSSF Scorecard. Open Source Security Foundation.
 
@@ -160,4 +160,4 @@ Rust API Guidelines, C-STABLE. https://rust-lang.github.io/api-guidelines/
 
 ---
 
-*April 2026 - Opus 4.6*
+_April 2026 - Opus 4.6_

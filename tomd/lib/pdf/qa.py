@@ -32,11 +32,11 @@ _FRONT_MATTER_FIELDS = frozenset({"title", "document", "date", "reply-to", "audi
 _WG21_DOC_NUM_RE = re.compile(r"[DPN]\d{3,5}R?\d*", re.IGNORECASE)
 
 _STRUCTURAL_CODE_RE = re.compile(
-    r"^\s*[{}]|"               # standalone brace lines
-    r";\s*$|"                  # trailing semicolons (code statements)
-    r"#include\s*<|"           # preprocessor includes
+    r"^\s*[{}]|"  # standalone brace lines
+    r";\s*$|"  # trailing semicolons (code statements)
+    r"#include\s*<|"  # preprocessor includes
     r"\w+\s*\([^)]*\)\s*\{|"  # function_name(...) {
-    r"\w+\s*\([^)]*\)\s*;",   # declaration: name(...);
+    r"\w+\s*\([^)]*\)\s*;",  # declaration: name(...);
     re.MULTILINE,
 )
 
@@ -44,6 +44,7 @@ _STRUCTURAL_CODE_RE = re.compile(
 @dataclass
 class QAMetrics:
     """Per-document quality metrics computed purely from Markdown text."""
+
     file: str = ""
     total_chars: int = 0
     heading_count: int = 0
@@ -122,13 +123,13 @@ def _count_unfenced_code(paragraphs: list[dict]) -> int:
     return sum(1 for p in paragraphs if _looks_like_code(p))
 
 
-def compute_metrics(md_text: str, file: str = "") -> QAMetrics:
+def compute_metrics(md_text: str) -> QAMetrics:
     """Compute QA metrics by parsing the Markdown output with mistune.
 
     Takes only the Markdown text. No page count, no format hints.
     Everything is derived from the text itself.
     """
-    m = QAMetrics(file=file)
+    m = QAMetrics()
     m.total_chars = len(md_text)
     m.empty_output = m.total_chars == 0 or not md_text.strip()
 
@@ -158,7 +159,8 @@ def compute_metrics(md_text: str, file: str = "") -> QAMetrics:
     m.has_doc_number = bool(_WG21_DOC_NUM_RE.search(doc_val))
 
     m.uncertain_count = sum(
-        1 for t in tokens
+        1
+        for t in tokens
         if t["type"] == "block_html" and _UNCERTAIN_MARKER in t.get("raw", "")
     )
 
@@ -201,8 +203,12 @@ def _score(m: QAMetrics) -> tuple[int, list[str]]:
         score -= penalty
         issues.append(f"{m.unfenced_code_lines} unfenced code lines")
 
-    has_structure = (m.heading_count > 0) + (m.code_block_count > 0) + \
-                    (m.list_count > 0) + (m.table_count > 0)
+    has_structure = (
+        (m.heading_count > 0)
+        + (m.code_block_count > 0)
+        + (m.list_count > 0)
+        + (m.table_count > 0)
+    )
     if is_long and has_structure <= 1:
         score -= 10
         issues.append(f"low variety ({has_structure} structural types)")
@@ -222,30 +228,33 @@ def _qa_one(path_str: str) -> dict:
     try:
         if ext in _HTML_EXTENSIONS:
             from ..html import convert_html
+
             md_text, _, _ = convert_html(path)
-            m = compute_metrics(md_text, file=str(path))
+            m = compute_metrics(md_text)
             return asdict(m)
 
         from . import _run_pipeline
+
         r = _run_pipeline(path)
 
         if not r.readable:
-            m = QAMetrics(file=str(path),
-                          score=0, issues=["unreadable (scanned/encrypted PDF)"])
+            m = QAMetrics(
+                file=str(path), score=0, issues=["unreadable (scanned/encrypted PDF)"]
+            )
             return asdict(m)
 
         if r.skipped:
-            m = QAMetrics(file=str(path),
-                          score=100, issues=[f"{r.skip_reason} (skipped)"])
+            m = QAMetrics(
+                file=str(path), score=100, issues=[f"{r.skip_reason} (skipped)"]
+            )
             return asdict(m)
 
-        m = compute_metrics(r.md, file=str(path))
+        m = compute_metrics(r.md)
         return asdict(m)
 
     except Exception as exc:
         _log.error("Pipeline failed for %s: %s", path, exc)
-        m = QAMetrics(file=str(path), score=0,
-                      issues=[f"pipeline error: {exc}"])
+        m = QAMetrics(file=str(path), score=0, issues=[f"pipeline error: {exc}"])
         return asdict(m)
 
 
@@ -253,8 +262,12 @@ def _qa_metrics_from_dict(d: dict) -> QAMetrics:
     return QAMetrics(**d)
 
 
-def run_qa_report(paths: list[Path], json_path: Path | None = None,
-                  workers: int = 1, timeout: int = 120) -> None:
+def run_qa_report(
+    paths: list[Path],
+    json_path: Path | None = None,
+    workers: int = 1,
+    timeout: int = 120,
+) -> None:
     """Run QA scoring on a list of PDF/HTML files and print a ranked report.
 
     Uses *workers* parallel processes (default 1 = sequential).
@@ -285,17 +298,22 @@ def run_qa_report(paths: list[Path], json_path: Path | None = None,
                         elapsed = time.monotonic() - t0
                         rate = done_count / elapsed if elapsed > 0 else 0
                         eta = (total - done_count) / rate if rate > 0 else 0
-                        print(f"\r  [{done_count}/{total}] {name:<40} "
-                              f"{rate:.1f} files/s  ETA {eta/60:.0f}m",
-                              end="", file=sys.stderr)
+                        print(
+                            f"\r  [{done_count}/{total}] {name:<40} "
+                            f"{rate:.1f} files/s  ETA {eta/60:.0f}m",
+                            end="",
+                            file=sys.stderr,
+                        )
                         sys.stderr.flush()
                         try:
                             d = f.result()
                             results.append(_qa_metrics_from_dict(d))
                         except Exception as exc:
-                            results.append(QAMetrics(
-                                file=path_str, score=0,
-                                issues=[f"error: {exc}"]))
+                            results.append(
+                                QAMetrics(
+                                    file=path_str, score=0, issues=[f"error: {exc}"]
+                                )
+                            )
 
                 elif time.monotonic() - last_completion > timeout:
                     timed_out = []
@@ -303,12 +321,19 @@ def run_qa_report(paths: list[Path], json_path: Path | None = None,
                         path_str = future_to_path[f]
                         timed_out.append(Path(path_str).name)
                         f.cancel()
-                        results.append(QAMetrics(
-                            file=path_str, score=0,
-                            issues=[f"timeout (no progress for {timeout}s)"]))
+                        results.append(
+                            QAMetrics(
+                                file=path_str,
+                                score=0,
+                                issues=[f"timeout (no progress for {timeout}s)"],
+                            )
+                        )
                     done_count += len(pending)
-                    print(f"\n  TIMEOUT: {len(timed_out)} files aborted: "
-                          f"{', '.join(timed_out)}", file=sys.stderr)
+                    print(
+                        f"\n  TIMEOUT: {len(timed_out)} files aborted: "
+                        f"{', '.join(timed_out)}",
+                        file=sys.stderr,
+                    )
                     break
 
                 else:
@@ -320,16 +345,21 @@ def run_qa_report(paths: list[Path], json_path: Path | None = None,
             elapsed = time.monotonic() - t0
             rate = i / elapsed if elapsed > 0 else 0
             eta = (total - i) / rate if rate > 0 else 0
-            print(f"\r  [{i}/{total}] {path.name:<40} "
-                  f"{rate:.1f} files/s  ETA {eta/60:.0f}m",
-                  end="", file=sys.stderr)
+            print(
+                f"\r  [{i}/{total}] {path.name:<40} "
+                f"{rate:.1f} files/s  ETA {eta/60:.0f}m",
+                end="",
+                file=sys.stderr,
+            )
             sys.stderr.flush()
             d = _qa_one(str(path))
             results.append(_qa_metrics_from_dict(d))
 
     wall = time.monotonic() - t0
-    print(f"\n  Finished in {wall/60:.1f} minutes "
-          f"({wall/total:.1f}s/file avg)\n", file=sys.stderr)
+    print(
+        f"\n  Finished in {wall/60:.1f} minutes " f"({wall/total:.1f}s/file avg)\n",
+        file=sys.stderr,
+    )
 
     results.sort(key=lambda r: r.score)
 

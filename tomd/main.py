@@ -17,8 +17,12 @@ import glob as globmod
 import sys
 from pathlib import Path
 
-_HTML_EXTENSIONS = frozenset({".html", ".htm"})
-_PDF_EXTENSIONS = frozenset({".pdf"})
+from .lib.converter import (
+    HTML_EXTENSIONS,
+    PDF_EXTENSIONS,
+    UnsupportedFormatError,
+    convert_file,
+)
 
 
 def main():
@@ -75,7 +79,7 @@ def main():
 
     if args.qa or args.qa_json:
         qa_files = [f for f in input_files
-                    if f.suffix.lower() in _PDF_EXTENSIONS | _HTML_EXTENSIONS]
+                    if f.suffix.lower() in PDF_EXTENSIONS | HTML_EXTENSIONS]
         if not qa_files:
             print("No PDF/HTML files found for QA scoring.", file=sys.stderr)
             sys.exit(1)
@@ -107,18 +111,7 @@ def main():
         prompts_path = md_path.with_suffix(".prompts.md")
 
         try:
-            ext = input_file.suffix.lower()
-            if ext in _HTML_EXTENSIONS:
-                from .lib.html import convert_html
-                md_text, prompts_text, _prov = convert_html(input_file)
-            elif ext in _PDF_EXTENSIONS:
-                from .lib.pdf import convert_pdf
-                md_text, prompts_text, _prov = convert_pdf(input_file)
-            else:
-                print(f"SKIP: {input_file} unsupported format", file=sys.stderr)
-                failures.append(input_file)
-                continue
-
+            md_text, prompts_text, _prov = convert_file(input_file)
             md_path.parent.mkdir(parents=True, exist_ok=True)
             md_path.write_text(md_text, encoding="utf-8")
 
@@ -131,6 +124,10 @@ def main():
                 print(f"  ok: {input_file} -> {md_path}")
 
             successes.append(input_file)
+        except UnsupportedFormatError:
+            print(f"SKIP: {input_file} unsupported format", file=sys.stderr)
+            failures.append(input_file)
+            continue
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(

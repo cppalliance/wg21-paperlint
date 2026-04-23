@@ -111,6 +111,6 @@ def test_unknown_warning_preserved_when_no_metadata(tmp_path):
 <p>Just pure prose with nothing recognizable.</p>
 </body></html>"""
     path = _write(tmp_path, "unknown_no_meta.html", html)
-    md, prompts, _ = convert_html(path)
+    _, prompts, _ = convert_html(path)
     assert prompts is not None, "warning should be present when extraction failed"
     assert "Unrecognized" in prompts
