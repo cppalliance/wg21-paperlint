@@ -79,7 +79,8 @@ class Paper:
     mailing_id: str        # e.g. "2026-02"
     title: str
     authors: list[str]
-    date: str              # ISO date, e.g. "2026-01-15"
+    mailing_date: str      # ISO date of the mailing, e.g. "2026-02-15"
+    publication_date: str  # ISO date from the paper itself, e.g. "2026-01-15"
     audience: list[str]    # short names: ["LEWG", "SG14"] — no hyphens
     intent: str            # "ask" | "info" (maps to paper_type in open-std)
     url: str               # canonical open-std.org URL
