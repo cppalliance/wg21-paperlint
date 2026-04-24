@@ -4,7 +4,7 @@
 PDF: hybrid dual extraction (MuPDF + spatial rules) with confidence scoring.
 HTML: DOM traversal with generator-specific metadata extraction.
 
-Usage (after `pip install -e tomd`):
+Usage (after `pip install -e .` from the repo root):
     tomd input.pdf                  # -> input.md + input.prompts.md
     tomd input.html                 # -> input.md
     tomd *.pdf *.html --outdir out/ # batch mode

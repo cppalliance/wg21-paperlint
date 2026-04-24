@@ -9,21 +9,20 @@ authors = [{name = "Sergio DuBois", email = "sentientsergio@gmail.com"}]
 dependencies = [
     "openai",
     "python-dotenv",
-    "beautifulsoup4",
+    "beautifulsoup4~=4.14.0",
     "requests",
-    "tomd",
+    "pymupdf~=1.27.0",
+    "mistune~=3.2.0",
 ]
 
 [project.optional-dependencies]
 test = [
     "pytest~=8.0",
-    # tomd is imported by paperlint.extract; its HTML/PDF stack needs these at import time
-    "mistune~=3.2",
-    "pymupdf~=1.27",
 ]
 
 [project.scripts]
 paperlint = "paperlint.__main__:main"
+tomd = "tomd.main:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]
@@ -31,12 +30,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["paperlint*"]
-
-[tool.uv.sources]
-tomd = { path = "tomd", editable = true }
+include = ["paperlint*", "tomd*"]
 
 [tool.pytest.ini_options]
-# Repo-root on sys.path so `import tomd` works without a prior `pip install -e ./tomd`
-# when running `pytest` from any working directory.
+# Repo-root on sys.path so `import tomd` works when `pytest` is invoked from
+# any working directory.
 pythonpath = ["."]
