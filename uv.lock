@@ -7,6 +7,7 @@ members = [
     "mailing",
     "paperlint",
     "paperstore",
+    "tomd",
 ]
 
 [[package]]
@@ -332,12 +333,11 @@ source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "mailing" },
-    { name = "mistune" },
     { name = "openai" },
     { name = "paperstore" },
-    { name = "pymupdf" },
     { name = "python-dotenv" },
     { name = "requests" },
+    { name = "tomd" },
 ]
 
 [package.optional-dependencies]
@@ -354,13 +354,12 @@ dev = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = "~=4.14.0" },
     { name = "mailing", editable = "packages/mailing" },
-    { name = "mistune", specifier = "~=3.2.0" },
     { name = "openai" },
     { name = "paperstore", editable = "packages/paperstore" },
-    { name = "pymupdf", specifier = "~=1.27.0" },
     { name = "pytest", marker = "extra == 'test'", specifier = "~=8.0" },
     { name = "python-dotenv" },
     { name = "requests" },
+    { name = "tomd", editable = "packages/tomd" },
 ]
 provides-extras = ["test"]
 
@@ -552,6 +551,25 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/7b/ae/2d9c981590ed9999a0d91755b47fc74f74de286b0f5cee14c9269041e6c4/soupsieve-2.8.3.tar.gz", hash = "sha256:3267f1eeea4251fb42728b6dfb746edc9acaffc4a45b27e19450b676586e8349", size = 118627, upload-time = "2026-01-20T04:27:02.457Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/46/2c/1462b1d0a634697ae9e55b3cecdcb64788e8b7d63f54d923fcd0bb140aed/soupsieve-2.8.3-py3-none-any.whl", hash = "sha256:ed64f2ba4eebeab06cc4962affce381647455978ffc1e36bb79a545b91f45a95", size = 37016, upload-time = "2026-01-20T04:27:01.012Z" },
+]
+
+[[package]]
+name = "tomd"
+version = "0.2.0"
+source = { editable = "packages/tomd" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "mistune" },
+    { name = "paperstore" },
+    { name = "pymupdf" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "beautifulsoup4", specifier = "~=4.14.0" },
+    { name = "mistune", specifier = "~=3.2.0" },
+    { name = "paperstore", editable = "packages/paperstore" },
+    { name = "pymupdf", specifier = "~=1.27.0" },
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 """Tests for normalized quote offsets and TOC stripping."""
 
-from paperlint.extract import _strip_toc
+from tomd.api import _strip_toc
 from paperlint.models import Evidence, Finding
 from paperlint.pipeline import normalized_char_offset_map, step_verify_quotes
 

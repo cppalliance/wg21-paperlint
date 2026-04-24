@@ -1,0 +1,23 @@
+[project]
+name = "tomd"
+version = "0.2.0"
+description = "PDF/HTML to Markdown for WG21 papers (paperstore-aware)"
+requires-python = ">=3.12"
+license = {text = "BSL-1.0"}
+authors = [{name = "Sergio DuBois", email = "sentientsergio@gmail.com"}]
+dependencies = [
+    "paperstore",
+    "pymupdf~=1.27.0",
+    "mistune~=3.2.0",
+    "beautifulsoup4~=4.14.0",
+]
+
+[project.scripts]
+tomd = "tomd.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tomd"]

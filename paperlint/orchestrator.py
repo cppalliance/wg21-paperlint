@@ -27,10 +27,10 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from mailing.download import download_paper
 from paperlint.credentials import ensure_api_keys
 from paperlint.logutil import configure_paperlint_file_logging_if_needed, get_paperlint_logger
 from paperlint.llm import OPENROUTER_MODEL, build_client
-from paperlint.mailing import fetch_paper
 from paperlint.models import (
     SCHEMA_VERSION,
     Evaluation,
@@ -44,12 +44,12 @@ from paperlint.pipeline import (
     RUBRIC_PATH,
     step_discovery,
     step_gate,
-    step_metadata,
     step_summary_writer,
     step_verify_quotes,
 )
-from paperlint.storage import JsonBackend, StorageBackend
 from paperlint.suppress import step_suppress_known_fps
+from paperstore import JsonBackend, StorageBackend
+from tomd.api import convert_paper as tomd_convert_paper
 
 _PKG_ROOT = Path(__file__).resolve().parent
 
@@ -89,12 +89,18 @@ def convert_one_paper(
     mailing_meta: dict,
     storage: StorageBackend | None = None,
 ) -> dict:
-    """Fetch a paper and convert it to markdown, no LLM calls.
+    """Fetch a paper, stage it in paperstore, and convert it to markdown. No LLM.
 
-    Writes ``paper.md`` and ``meta.json`` for the paper through the storage
-    backend (default: a ``JsonBackend`` rooted at ``workspace_dir``). Invoked
-    from the **convert** CLI only. ``run``/``eval`` load existing files via
-    :func:`load_converted_paper` instead of calling this to avoid duplicate work.
+    Flow:
+        1. ``mailing.download.download_paper`` writes the source via
+           :meth:`StorageBackend.put_source`.
+        2. ``tomd.api.convert_paper`` reads source + mailing-meta through the
+           backend, converts, and writes ``paper.md`` back through the backend.
+        3. ``PaperMeta`` is built here from ``mailing_meta`` and written to
+           ``meta.json``.
+
+    Invoked from the ``convert`` CLI. ``run``/``eval`` use
+    :func:`load_converted_paper` instead to avoid duplicate work.
     """
     paper_id = paper_id.strip().upper()
     if mailing_meta is None:
@@ -104,12 +110,27 @@ def convert_one_paper(
     backend = _resolve_storage(workspace_dir, storage)
 
     print(f"Fetching {paper_id}...")
-    paper_path = fetch_paper(paper_id, source_url=source_url)
+    paper_path = download_paper(paper_id, backend, source_url=source_url)
 
-    clean_text, meta = step_metadata(paper_path, mailing_meta)
+    clean_text = tomd_convert_paper(paper_id, backend)
+
+    authors = mailing_meta.get("authors", []) or []
+    if isinstance(authors, str):
+        authors = [a.strip() for a in authors.split(",") if a.strip()]
+
+    meta = PaperMeta(
+        paper=paper_id,
+        title=mailing_meta.get("title", "") or "",
+        authors=authors,
+        target_group=mailing_meta.get("subgroup", "") or "",
+        paper_type=mailing_meta.get("paper_type", "proposal") or "proposal",
+        source_file=str(paper_path),
+        run_timestamp=datetime.now(timezone.utc).isoformat(),
+        model=OPENROUTER_MODEL,
+    )
 
     meta_path = backend.write_meta_json(paper_id, asdict(meta))
-    paper_md_path = backend.write_paper_md(paper_id, clean_text)
+    paper_md_path = backend.workspace_dir / paper_id / "paper.md" if isinstance(backend, JsonBackend) else None
 
     return {
         "paper_id": paper_id,

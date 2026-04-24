@@ -7,18 +7,21 @@
 # Official repository: https://github.com/cppalliance/paperlint
 #
 
-"""Pipeline steps: metadata, discovery, quote verification, gate, summary."""
+"""Pipeline steps: discovery, quote verification, gate, summary.
+
+Metadata extraction (formerly ``step_metadata``) moved to
+``tomd.api.convert_paper`` + ``paperlint.orchestrator.convert_one_paper``
+in the 0.2 restructure; this module no longer imports from tomd.
+"""
 
 from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 import openai
 
-from paperlint.extract import extract_text
 from paperlint.llm import (
     OPENROUTER_MODEL,
     OPENROUTER_SONNET,
@@ -101,46 +104,6 @@ def _format_findings_for_eval(meta: PaperMeta, passed: list[GatedFinding]) -> st
         lines.append(f"- **Correction:** {f.correction}")
         lines.append("")
     return "\n".join(lines)
-
-
-def step_metadata(paper_path: Path, mailing_meta: dict) -> tuple[str, PaperMeta]:
-    """Step 0: Build PaperMeta from the authoritative mailing index and extract paper text.
-
-    The open-std.org mailing index is authoritative for title, authors, audience, and
-    paper_type. No LLM call is made for metadata; the index is ground truth.
-    """
-    print("\n--- Step 0: Metadata (from mailing index) ---")
-
-    paper_number = paper_path.stem.upper()
-
-    try:
-        clean_text = extract_text(str(paper_path), mailing_meta=mailing_meta)
-    except Exception as e:
-        print(f"  Text extraction failed: {e}")
-        if paper_path.suffix.lower() != ".pdf":
-            clean_text = paper_path.read_text(encoding="utf-8")[:15000]
-        else:
-            clean_text = f"[Document: {paper_number}]"
-
-    authors = mailing_meta.get("authors", []) or []
-    if isinstance(authors, str):
-        authors = [a.strip() for a in authors.split(",") if a.strip()]
-
-    meta = PaperMeta(
-        paper=paper_number,
-        title=mailing_meta.get("title", "") or "",
-        authors=authors,
-        target_group=mailing_meta.get("subgroup", "") or "",
-        paper_type=mailing_meta.get("paper_type", "proposal") or "proposal",
-        source_file=str(paper_path),
-        run_timestamp=datetime.now(timezone.utc).isoformat(),
-        model=OPENROUTER_MODEL,
-    )
-
-    print(f"  Paper: {meta.paper} — {meta.title}")
-    print(f"  Authors: {', '.join(meta.authors)}")
-    print(f"  Target: {meta.target_group} | Type: {meta.paper_type}")
-    return clean_text, meta
 
 
 def _discovery_json_schema() -> str:

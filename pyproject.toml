@@ -9,12 +9,11 @@ authors = [{name = "Sergio DuBois", email = "sentientsergio@gmail.com"}]
 dependencies = [
     "paperstore",
     "mailing",
+    "tomd",
     "openai",
     "python-dotenv",
     "beautifulsoup4~=4.14.0",
     "requests",
-    "pymupdf~=1.27.0",
-    "mistune~=3.2.0",
 ]
 
 [project.optional-dependencies]
@@ -29,7 +28,6 @@ dev = [
 
 [project.scripts]
 paperlint = "paperlint.__main__:main"
-tomd = "tomd.main:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]
@@ -37,7 +35,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["paperlint*", "tomd*"]
+include = ["paperlint*"]
 
 [tool.uv.workspace]
 members = ["packages/*"]
@@ -45,15 +43,12 @@ members = ["packages/*"]
 [tool.uv.sources]
 paperstore = {workspace = true}
 mailing    = {workspace = true}
+tomd       = {workspace = true}
 
 [tool.pytest.ini_options]
-# Repo root on sys.path so `import tomd` still resolves during the
-# multi-PR restructure. When tomd and paperlint also move under
-# ``packages/``, this line goes away.
-pythonpath = ["."]
 testpaths = [
     "tests",
     "packages/paperstore/tests",
     "packages/mailing/tests",
-    "tomd/tests",
+    "packages/tomd/tests",
 ]
