@@ -49,11 +49,11 @@ cppalliance/wg21-paperlint/      (public — users clone this to replicate)
 open-std.org mailing
         │
         ▼
- wg21-paperlint: scrape ──► convert (parallel) ──► eval (suspended)
+ wg21-paperlint: scrape ──► convert (parallel) ──► eval (policy-suspended)
         │                        │                       │
    serial, one             tomd × N papers        LLM × N papers
-   HTTP stream             (minutes / mailing)    (not objective enough
-        │                                          to ship — see note)
+   HTTP stream             (minutes / mailing)    (available in CLI,
+        │                                          not enabled for production)
         ▼
      Postgres
    ┌────┼────┐
@@ -63,7 +63,7 @@ Agora21  C++ Herald  PRAGMA
 
 - Scrape is the serial bottleneck: one request stream to open-std.org.
 - After scrape, tomd conversion is embarrassingly parallel (minutes for a full mailing). tomd is lightweight — no ML, no OCR — so many workers can run concurrently with low memory overhead.
-- **Eval is currently suspended.** Vinnie, Apr 22 2026: _"We have turned off the evaluation of papers for now because it is not as objective as we would like."_ Vinnie redirected contributors toward the PDF/HTML→markdown conversion and paper-revision diff work. The scrape+convert path runs independently.
+- **Eval is currently policy-suspended for production use.** The CLI implementation still exists for local and future use. Vinnie, Apr 22 2026: _"We have turned off the evaluation of papers for now because it is not as objective as we would like."_ Vinnie redirected contributors toward the PDF/HTML→markdown conversion and paper-revision diff work. The scrape+convert path runs independently.
 - Downstream systems (Agora21, C++ Herald, PRAGMA) read from Postgres — they do not re-scrape the mailing.
 
 ---
@@ -90,7 +90,7 @@ class Paper:
 
 `meta_source` records provenance: `"mailing"` = authoritative from open-std scrape; `"tomd"` = extracted by tomd from the paper body; `"merged"` = both sources agreed.
 
-**Metadata authority rule** (Vinnie, Apr 22 huddle): _"The website should always show what comes from the mailing."_ The mailing index is the source of truth for all fields. tomd receives the mailing metadata when invoked and uses it to augment YAML front-matter for fields missing from the source file — this is tomd's responsibility, not paperlint's.
+**Metadata authority rule** (Vinnie, Apr 22 huddle): _"The website should always show what comes from the mailing."_ The mailing index is the source of truth for all fields. tomd extracts metadata present in the source file. After conversion, paperlint applies the scraped mailing metadata as a fallback for missing YAML front-matter fields while preserving fields that tomd extracted from the paper body.
 
 ---
 
@@ -109,7 +109,7 @@ Canonical field order: `title`, `document`, `date`, `intent`, `audience`, `reply
 
 Audience normalization: wg21.org displays audience values from open-std metadata but must normalize to short names without hyphens. "EWG Evolution" → "EWG", "SG-16" → "SG16". The tag normalization formula is Will's to define.
 
-tomd's contract: extract what's in the source file; if a field is absent from the source, leave it absent and let the mailing metadata fill it in (tomd receives that metadata at invocation time).
+tomd's contract: extract what's in the source file. If a field is absent from the source, leave it absent. paperlint owns the mailing-index context and fills missing YAML front-matter fields after tomd returns markdown.
 
 ---
 
@@ -154,7 +154,7 @@ def process_mailing(mailing_id: str):
 
 wg21-paperlint is installed as a Git submodule. Django imports it as a Python library, not via subprocess.
 
-**Current state:** mailing detection (polling open-std.org for new mailings) lives in the Django app. Long-term intent (Vinnie, Apr 22 huddle): move it into paperlint so the full pipeline is runnable without Django. Not yet done; tracked as a pending item (see §10).
+Mailing polling/scheduling is owned by the consuming application. paperlint exposes explicit mailing fetch and conversion entry points; it does not run a scheduler.
 
 ---
 
@@ -169,14 +169,14 @@ python -m paperlint mailing 2026-02 --workspace-dir ./data/
 # Convert all papers to markdown (no LLM, parallel)
 python -m paperlint convert 2026-02 --workspace-dir ./data/ [--max-workers 10]
 
-# Run full eval pipeline on one paper (suspended; for future use)
+# Run full eval pipeline on one paper (CLI available; production policy-suspended)
 python -m paperlint eval 2026-02/P3642R4 --workspace-dir ./data/
 
-# Batch eval all papers in a mailing (suspended; for future use)
+# Batch eval all papers in a mailing (CLI available; production policy-suspended)
 python -m paperlint run 2026-02 --workspace-dir ./data/ [--max-cap 10]
 
-# tomd standalone (paperlint downloads the paper first; tomd receives local path)
-python -m tomd 2026-02/P3642R4 --workspace-dir ./data/
+# tomd standalone (local source file in, markdown out)
+python -m tomd.main .paperlint_cache/p3642r4.pdf --outdir ./data/
 ```
 
 CLI requires `<mailing-id>/<paper-id>` form; bare paper-id or local path returns a clean error (decided in PR #43).
@@ -194,7 +194,7 @@ Paper (HTML or PDF via mailing-index URL — local paths are not accepted)
   │
   ▼
 Step 0: METADATA (no LLM)
-  Input: clean text — extract_html() for HTML, extract_pdf() for PDF
+  Input: clean text from `extract_text()` dispatching to tomd's HTML/PDF converters
   Source: open-std.org mailing index JSON (authoritative title, authors, subgroup,
           paper_type, canonical URL). No Sonnet/metadata LLM call.
   Output: PaperMeta persisted as meta.json; same extract drives Discovery/Gate text.
@@ -218,8 +218,8 @@ Step 1: DISCOVERY
   ▼
 Step 1b: QUOTE VERIFICATION (compute, no model)
   Input: findings + source text
-  Method: substring match — each evidence quote verified against source
-  Output: findings with unverifiable evidence dropped
+  Method: exact substring match, then whitespace-normalized substring match
+  Output: findings retained only when all evidence quotes verify
   │
   ▼
 Step 2: GATE
@@ -259,7 +259,7 @@ Each finding carries an array of evidence — exact quotes from the source docum
 ]
 ```
 
-Each quote is programmatically verified as a substring of the source text before reaching the Gate. Findings with no verifiable evidence are dropped automatically — the Gate never sees them.
+Each quote is programmatically verified against the source text before reaching the Gate. A finding is dropped if any evidence quote cannot be verified, so the Gate sees only findings whose full evidence set is present in the converted text.
 
 ---
 
@@ -275,8 +275,8 @@ Every pipeline LLM step uses JSON mode (`response_format: {"type": "json_object"
 
 | Source | Function | Library | Used by |
 |--------|----------|---------|---------|
-| HTML | `extract_html()` | `html.parser` (stdlib) | Metadata, Discovery, Gate |
-| PDF | `extract_pdf()` | docling (preferred), pymupdf fallback | Metadata, Discovery, Gate |
+| HTML | `extract_text()` → `tomd.lib.html.convert_html()` | home-grown tomd converter | Metadata, Discovery, Gate |
+| PDF | `extract_text()` → `tomd.lib.pdf.convert_pdf()` | home-grown tomd converter | Metadata, Discovery, Gate |
 
 Text extraction produces clean text. Metadata and LLM stages receive the same extracted text stored as `paper.md`.
 
@@ -402,8 +402,7 @@ python -m paperlint mailing 2026-02 --workspace-dir ./data/
 ```
 openai             # OpenRouter API (all model calls)
 python-dotenv      # .env loading
-pymupdf            # PDF text extraction (fallback)
-docling            # PDF structure-aware extraction (preferred)
+tomd               # Bundled PDF/HTML-to-Markdown converter
 beautifulsoup4     # HTML parsing (mailing page scraper)
 requests           # HTTP (paper fetching, mailing scraper)
 ```
@@ -423,9 +422,8 @@ OPENROUTER_API_KEY=sk-or-...
 ### Known Limitations
 
 - **Context window:** Papers exceeding ~200K tokens cannot be processed in a single Discovery call.
-- **PDF extraction:** docling / pymupdf quality varies by WG21 PDF toolchain.
-- **Non-determinism:** Same paper run twice may produce different findings. The Gate provides precision consistency — what passes is reliably correct, but the set of candidates varies.
-- **Quote verification:** Substring matching with whitespace normalization; OCR PDFs may still mismatch visual text.
+- **PDF conversion:** tomd is under active development. It handles the target WG21 paper formats directly, but some papers still need converter improvements before their markdown output is fully accurate.
+- **Evaluation non-determinism:** The scrape and tomd conversion stages are deterministic. The LLM evaluation stages may produce different candidate findings across runs; the Gate is intended to improve precision, but candidate coverage can vary.
 
 ---
 
@@ -448,4 +446,3 @@ The prompts are the product. The orchestrator is the plumbing.
 Decisions not yet finalized as of Apr 23, 2026:
 
 - **GitHub issues per paper:** Where does per-paper issue tracking live once eval ships? `wg21.link/PXXXX/github` works as a URL pattern; where this is hosted and how paperlint links to it is unresolved.
-- **Mailing detection in paperlint vs. Django:** Vinnie's stated intent is to move mailing detection into the paperlint repo so the full pipeline can run without Django. Currently lives in `wg21-website`. Not yet scheduled.
