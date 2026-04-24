@@ -9,9 +9,9 @@
 
 """Pytest bootstrap: ensure repo root is on ``sys.path`` before imports.
 
-``paperlint.extract`` imports the vendored ``tomd`` package from the sibling
-``tomd/`` directory. Without ``pip install -e ./tomd``, Python still finds it
-when the repository root is on ``sys.path``. ``[tool.pytest.ini_options]``
+``paperlint.extract`` imports the sibling ``tomd`` package. Putting the repo
+root on ``sys.path`` lets ``import tomd`` resolve even when pytest is invoked
+from an unusual working directory. ``[tool.pytest.ini_options]``
 ``pythonpath`` does the same for recent pytest; this file covers older pytest
 or non-standard invocation.
 """
