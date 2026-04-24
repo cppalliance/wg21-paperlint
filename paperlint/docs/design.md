@@ -309,7 +309,7 @@ All LLM calls route through OpenRouter. Paper fetch uses `requests` with a timeo
   "paper": "P3642R4",
   "title": "Carry-less product: std::clmul",
   "authors": ["Jan Schultke"],
-  "audience": ["LEWG"],
+  "audience": "LEWG",
   "paper_type": "proposal",
   "generated": "2026-04-12T...",
   "model": "anthropic/claude-opus-4.6",
@@ -341,7 +341,7 @@ All LLM calls route through OpenRouter. Paper fetch uses `requests` with a timeo
 
 `pipeline_status` is always present; values are `complete`, `failed`, or `partial`. On `partial` runs the payload additionally carries `failure_stage`, `failure_type`, and `failure_message`; with `PAPERLINT_ERROR_TRACEBACK=1` it also carries `failure_traceback`. These four fields are omitted when unset.
 
-`audience` mirrors §4's `Paper.audience` (a list of short names). The current pipeline still writes it as a single string sourced from `PaperMeta.target_group`; aligning the wire format with §4 lands with the `Paper` migration.
+**Audience shape, current vs. target.** §4's `Paper.audience` is a list of short names (`["LEWG", "SG14"]`). The current pipeline still writes `audience` as a single string in both places it appears on the wire: `evaluation.json`'s top-level `audience` (sourced from `PaperMeta.target_group`, e.g. `"LEWG"` or `"LEWG, SG14"`) and `index.json`'s `papers[].audience` (propagated from the same field via `ev.get("audience", ...)` in `_build_index`, which then `split(",")`s it to populate `rooms`). The examples in this section show that current string form. Both locations flip to `list[str]` when `Paper` is wired through the pipeline; that wire-format change is out of scope for this doc update.
 
 #### Per-mailing: `index.json` (batch mode only)
 
@@ -360,7 +360,7 @@ All LLM calls route through OpenRouter. Paper fetch uses `requests` with a timeo
     "LEWG": {"papers": ["P3642R4"], "total_findings": 9}
   },
   "papers": [
-    {"paper": "P3642R4", "title": "Carry-less product: std::clmul", "audience": ["LEWG"], "findings_passed": 9, "findings_discovered": 16}
+    {"paper": "P3642R4", "title": "Carry-less product: std::clmul", "audience": "LEWG", "findings_passed": 9, "findings_discovered": 16}
   ]
 }
 ```
