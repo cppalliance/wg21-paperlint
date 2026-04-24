@@ -5,20 +5,58 @@
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 #
 
-"""Optional file logging for paperlint (PAPERLINT_LOG_FILE, PAPERLINT_LOG_TO_WORKSPACE)."""
+"""Logging wiring for paperlint.
+
+Two handlers live here:
+
+* ``configure_paperlint_console_logging`` attaches a stderr ``StreamHandler``
+  whose level is driven by the CLI ``-v`` count (0=WARNING, 1=INFO, 2+=DEBUG).
+  This is the normal path for terminal usage.
+* ``configure_paperlint_file_logging_if_needed`` is a legacy escape hatch kept
+  for callers that want to capture a structured log to disk, driven by the
+  ``PAPERLINT_LOG_FILE`` / ``PAPERLINT_LOG_TO_WORKSPACE`` env vars. It is not
+  the primary UX; the console handler is. Left in place because it's cheap and
+  already documented; revisit if nobody uses it.
+"""
 
 from __future__ import annotations
 
 import logging
 import os
+import sys
 from pathlib import Path
 
 _LOGGER_NAME = "paperlint"
 _pwl_file_handler: logging.FileHandler | None = None
+_pwl_console_handler: logging.StreamHandler | None = None
 
 
 def get_paperlint_logger() -> logging.Logger:
     return logging.getLogger(_LOGGER_NAME)
+
+
+def _level_for_verbosity(verbosity: int) -> int:
+    if verbosity >= 2:
+        return logging.DEBUG
+    if verbosity == 1:
+        return logging.INFO
+    return logging.WARNING
+
+
+def configure_paperlint_console_logging(verbosity: int = 0) -> None:
+    """Attach a stderr stream handler to the paperlint logger. Idempotent per process."""
+    global _pwl_console_handler
+    if _pwl_console_handler is not None:
+        return
+    level = _level_for_verbosity(verbosity)
+    h = logging.StreamHandler(stream=sys.stderr)
+    h.setLevel(level)
+    h.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+    _pwl_console_handler = h
+    log = get_paperlint_logger()
+    if log.level == logging.NOTSET or log.level > level:
+        log.setLevel(level)
+    log.addHandler(h)
 
 
 def configure_paperlint_file_logging_if_needed(workspace: Path | None) -> None:

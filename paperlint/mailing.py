@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import re
 import urllib.parse
+from pathlib import Path
 from typing import Optional
 
 import requests
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.open-std.org/jtc1/sc22/wg21/docs/papers"
 DEFAULT_USER_AGENT = "paperlint/0.1 (+https://github.com/cppalliance/paperlint)"
+_FETCH_TIMEOUT_SEC = 120
 
 _MAILING_ANCHOR_RE = re.compile(r"^mailing\d{4}-\d{2}$")
 _PAPER_LINK_PATTERN = re.compile(
@@ -254,3 +256,32 @@ def fetch_mailing_paper_ids(mailing_id: str) -> list[str]:
     """
     papers = fetch_papers_for_mailing(mailing_id)
     return [p["paper_id"] for p in papers]
+
+
+def fetch_paper(paper_id: str, cache_dir: Path | None = None, source_url: str = "") -> Path:
+    """Fetch a WG21 document by ID using the canonical URL from the mailing index.
+
+    source_url is required: it is the authoritative URL from the mailing index
+    (cells[0] href). No year or extension guessing; no brute-force URL scan.
+    """
+    if not source_url:
+        raise ValueError(
+            f"fetch_paper requires source_url (authoritative from mailing index). "
+            f"Paper: {paper_id}."
+        )
+
+    if cache_dir is None:
+        cache_dir = Path.cwd() / ".paperlint_cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = source_url.rsplit("/", 1)[-1].lower()
+    local = cache_dir / filename
+    if local.exists():
+        logger.info("Found cached: %s", local)
+        return local
+    logger.info("Downloading: %s", source_url)
+    resp = requests.get(source_url, timeout=_FETCH_TIMEOUT_SEC, stream=True)
+    resp.raise_for_status()
+    local.write_bytes(resp.content)
+    logger.info("Downloaded: %s", local)
+    return local

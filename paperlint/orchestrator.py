@@ -27,11 +27,10 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-import requests
-
 from paperlint.credentials import ensure_api_keys
 from paperlint.logutil import configure_paperlint_file_logging_if_needed, get_paperlint_logger
 from paperlint.llm import OPENROUTER_MODEL, build_client
+from paperlint.mailing import fetch_paper
 from paperlint.models import (
     SCHEMA_VERSION,
     Evaluation,
@@ -54,8 +53,6 @@ from paperlint.suppress import step_suppress_known_fps
 
 _PKG_ROOT = Path(__file__).resolve().parent
 
-_FETCH_TIMEOUT_SEC = 120
-
 
 def git_sha() -> str:
     try:
@@ -72,35 +69,6 @@ def prompt_hash() -> str:
     files = sorted(PROMPTS_DIR.rglob("*.md")) + [RUBRIC_PATH]
     content = b"".join(f.read_bytes() for f in files if f.exists())
     return hashlib.sha256(content).hexdigest()[:12]
-
-
-def fetch_paper(paper_id: str, cache_dir: Path | None = None, source_url: str = "") -> Path:
-    """Fetch a WG21 document by ID using the canonical URL from the mailing index.
-
-    source_url is required — it is the authoritative URL from the mailing index
-    (cells[0] href). No year or extension guessing; no brute-force URL scan.
-    """
-    if not source_url:
-        raise ValueError(
-            f"fetch_paper requires source_url (authoritative from mailing index). "
-            f"Paper: {paper_id}."
-        )
-
-    if cache_dir is None:
-        cache_dir = Path.cwd() / ".paperlint_cache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-
-    filename = source_url.rsplit("/", 1)[-1].lower()
-    local = cache_dir / filename
-    if local.exists():
-        print(f"  Found cached: {local}")
-        return local
-    print(f"  Downloading: {source_url}")
-    resp = requests.get(source_url, timeout=_FETCH_TIMEOUT_SEC, stream=True)
-    resp.raise_for_status()
-    local.write_bytes(resp.content)
-    print(f"  Downloaded: {local}")
-    return local
 
 
 def _resolve_storage(

@@ -41,6 +41,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
+from paperlint.logutil import configure_paperlint_console_logging
 from paperlint.models import (
     SCHEMA_VERSION,
     FailureEntry,
@@ -521,6 +522,13 @@ def main() -> int:
         prog="paperlint",
         description="Evaluate WG21 papers for mechanically verifiable defects",
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Increase log verbosity (-v = INFO, -vv = DEBUG). Default is WARNING.",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     eval_parser = subparsers.add_parser(
@@ -605,6 +613,7 @@ def main() -> int:
     _add_workspace_dir_arg(mailing_parser)
 
     args = parser.parse_args()
+    configure_paperlint_console_logging(args.verbose)
 
     if args.command == "eval":
         return cmd_eval(args)
