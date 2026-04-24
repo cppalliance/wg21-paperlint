@@ -8,6 +8,7 @@ authors = [{name = "Sergio DuBois", email = "sentientsergio@gmail.com"}]
 
 dependencies = [
     "paperstore",
+    "mailing",
     "openai",
     "python-dotenv",
     "beautifulsoup4~=4.14.0",
@@ -43,6 +44,7 @@ members = ["packages/*"]
 
 [tool.uv.sources]
 paperstore = {workspace = true}
+mailing    = {workspace = true}
 
 [tool.pytest.ini_options]
 # Repo root on sys.path so `import tomd` still resolves during the
@@ -52,5 +54,6 @@ pythonpath = ["."]
 testpaths = [
     "tests",
     "packages/paperstore/tests",
+    "packages/mailing/tests",
     "tomd/tests",
 ]

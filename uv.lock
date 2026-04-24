@@ -4,6 +4,7 @@ requires-python = ">=3.12"
 
 [manifest]
 members = [
+    "mailing",
     "paperlint",
     "paperstore",
 ]
@@ -271,6 +272,23 @@ wheels = [
 ]
 
 [[package]]
+name = "mailing"
+version = "0.1.0"
+source = { editable = "packages/mailing" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "paperstore" },
+    { name = "requests" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "beautifulsoup4", specifier = "~=4.14.0" },
+    { name = "paperstore", editable = "packages/paperstore" },
+    { name = "requests" },
+]
+
+[[package]]
 name = "mistune"
 version = "3.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -313,6 +331,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
+    { name = "mailing" },
     { name = "mistune" },
     { name = "openai" },
     { name = "paperstore" },
@@ -334,6 +353,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "beautifulsoup4", specifier = "~=4.14.0" },
+    { name = "mailing", editable = "packages/mailing" },
     { name = "mistune", specifier = "~=3.2.0" },
     { name = "openai" },
     { name = "paperstore", editable = "packages/paperstore" },
