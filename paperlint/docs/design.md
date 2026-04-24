@@ -304,10 +304,12 @@ All LLM calls route through OpenRouter. Paper fetch uses `requests` with a timeo
   "schema_version": "1",
   "paperlint_sha": "abc123def456",
   "prompt_hash": "f25b0f1067fd",
+  "source_url": "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p3642r4.html",
+  "pipeline_status": "complete",
   "paper": "P3642R4",
   "title": "Carry-less product: std::clmul",
   "authors": ["Jan Schultke"],
-  "audience": "LEWG",
+  "audience": ["LEWG"],
   "paper_type": "proposal",
   "generated": "2026-04-12T...",
   "model": "anthropic/claude-opus-4.6",
@@ -337,7 +339,9 @@ All LLM calls route through OpenRouter. Paper fetch uses `requests` with a timeo
 }
 ```
 
-`pipeline_status` is one of `complete`, `failed`, or `partial` when present on degraded runs.
+`pipeline_status` is always present; values are `complete`, `failed`, or `partial`. On `partial` runs the payload additionally carries `failure_stage`, `failure_type`, and `failure_message`; with `PAPERLINT_ERROR_TRACEBACK=1` it also carries `failure_traceback`. These four fields are omitted when unset.
+
+`audience` mirrors §4's `Paper.audience` (a list of short names). The current pipeline still writes it as a single string sourced from `PaperMeta.target_group`; aligning the wire format with §4 lands with the `Paper` migration.
 
 #### Per-mailing: `index.json` (batch mode only)
 
@@ -356,10 +360,12 @@ All LLM calls route through OpenRouter. Paper fetch uses `requests` with a timeo
     "LEWG": {"papers": ["P3642R4"], "total_findings": 9}
   },
   "papers": [
-    {"paper": "P3642R4", "audience": "LEWG", "findings_passed": 9, "findings_discovered": 16}
+    {"paper": "P3642R4", "title": "Carry-less product: std::clmul", "audience": ["LEWG"], "findings_passed": 9, "findings_discovered": 16}
   ]
 }
 ```
+
+When any paper in the batch failed, `failed_papers` is also present: a list of entries each carrying `paper` plus whichever of `error`, `pipeline_status`, `summary`, `failure_stage`, `failure_type`, `failure_message`, and `failure_traceback` apply. Fields that do not apply to a given entry are omitted rather than emitted as `null`.
 
 `succeeded` counts papers whose `pipeline_status` is `complete`. `failed` counts HTTP/exceptions plus `pipeline_status` of `failed` or `partial`. `partial` is the count of papers that stopped in `partial` status.
 

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2026 Sergio DuBois (sentientsergio@gmail.com)
+# Copyright (c) 2026 Greg Kaleka (greg@gregkaleka.com)
 #
 # Distributed under the Boost Software License, Version 1.0.
 #
