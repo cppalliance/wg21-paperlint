@@ -339,7 +339,7 @@ All LLM calls route through OpenRouter. Paper fetch uses `requests` with a timeo
 }
 ```
 
-`pipeline_status` is always present; values are `complete`, `failed`, or `partial`. On `partial` runs the payload additionally carries `failure_stage`, `failure_type`, and `failure_message`; with `PAPERLINT_ERROR_TRACEBACK=1` it also carries `failure_traceback`. These four fields are omitted when unset.
+`pipeline_status` is always present; values are `complete`, `failed`, or `partial`. `complete` means the pipeline finished end-to-end and carries none of the `failure_*` fields. `failed` (pre-analysis failure, e.g., the paper could not be fetched or converted) and `partial` (analysis loaded metadata but raised before completing the remaining steps) both carry `failure_stage`, `failure_type`, and `failure_message`; with `PAPERLINT_ERROR_TRACEBACK=1` they additionally carry `failure_traceback`. All four `failure_*` fields are omitted when unset.
 
 **Audience shape, current vs. target.** §4's `Paper.audience` is a list of short names (`["LEWG", "SG14"]`). The current pipeline still writes `audience` as a single string in both places it appears on the wire: `evaluation.json`'s top-level `audience` (sourced from `PaperMeta.target_group`, e.g. `"LEWG"` or `"LEWG, SG14"`) and `index.json`'s `papers[].audience` (propagated from the same field via `ev.get("audience", ...)` in `_build_index`, which then `split(",")`s it to populate `rooms`). The examples in this section show that current string form. Both locations flip to `list[str]` when `Paper` is wired through the pipeline; that wire-format change is out of scope for this doc update.
 
