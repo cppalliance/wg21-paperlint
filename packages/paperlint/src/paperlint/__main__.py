@@ -272,7 +272,7 @@ def _parse_eval_ref(ref: str) -> tuple[str, str]:
     """Parse a <mailing-id>/<paper-id> reference. Raise ValueError on violation."""
     m = _EVAL_REF_RE.match(ref.strip())
     if not m:
-        raise ValueError(_EVAL_CONTRACT_MSG)
+        raise ValueError(f"invalid eval ref {ref!r}. {_EVAL_CONTRACT_MSG}")
     return m.group("mailing"), m.group("paper").upper()
 
 

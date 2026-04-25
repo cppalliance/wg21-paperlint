@@ -264,7 +264,9 @@ def step_discovery(
     renumbered 1..N for downstream gate/verification.
     """
     if passes < 1:
-        raise ValueError("passes must be >= 1")
+        raise ValueError(
+            f"step_discovery: passes must be >= 1, got {passes!r} (paper={meta.paper})"
+        )
 
     print("\n--- Step 1: Discovery (JSON mode + thinking) ---")
 

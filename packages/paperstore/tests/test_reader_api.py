@@ -125,5 +125,5 @@ def test_from_uri_file_and_none(tmp_path: Path):
 
 
 def test_from_uri_rejects_unsupported_scheme(tmp_path: Path):
-    with pytest.raises(ValueError, match="Unsupported"):
+    with pytest.raises(ValueError, match="unsupported URI scheme"):
         from_uri("postgres://localhost/x", workspace_dir=tmp_path)

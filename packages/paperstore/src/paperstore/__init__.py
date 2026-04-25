@@ -47,14 +47,23 @@ def from_uri(
     """
     if uri is None or uri == "":
         if workspace_dir is None:
-            raise ValueError("from_uri requires workspace_dir when uri is None.")
+            raise ValueError(
+                "paperstore.from_uri requires workspace_dir when uri is None or empty "
+                f"(got uri={uri!r}, workspace_dir=None)."
+            )
         return JsonBackend(workspace_dir)
     if uri.startswith("file://"):
         path = uri[len("file://"):] or workspace_dir
         if path is None:
-            raise ValueError(f"file:// URI has no path and no workspace_dir fallback.")
+            raise ValueError(
+                f"paperstore.from_uri: file:// URI has no path and no workspace_dir "
+                f"fallback (uri={uri!r})."
+            )
         return JsonBackend(path)
-    raise ValueError(f"Unsupported paperstore URI: {uri!r}")
+    raise ValueError(
+        f"paperstore.from_uri: unsupported URI scheme (uri={uri!r}); "
+        "only None, '', and file:// are recognized."
+    )
 
 
 __all__ = [

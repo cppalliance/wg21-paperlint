@@ -77,7 +77,11 @@ def _resolve_storage(
     if storage is not None:
         return storage
     if workspace_dir is None:
-        raise ValueError("Either workspace_dir or storage must be provided.")
+        raise ValueError(
+            "paperlint orchestrator: caller must supply workspace_dir or storage "
+            "(both are None). CLI entrypoints pass --workspace-dir; library callers "
+            "should pass either workspace_dir=Path(...) or storage=<StorageBackend>."
+        )
     return JsonBackend(workspace_dir)
 
 
