@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest~=8.0"]
+dev = ["pytest~=8.0", "ruff~=0.6"]
 
 [tool.uv]
 package = false
@@ -33,4 +33,5 @@ testpaths = [
     "packages/mailing/tests",
     "packages/tomd/tests",
     "packages/paperlint/tests",
+    "tests",
 ]

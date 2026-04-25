@@ -22,15 +22,20 @@ and installed automatically.
 
 ## Usage
 
+tomd reads sources staged in a paperstore workspace (run `python -m mailing` first):
+
 ```
-tomd paper.pdf                  # -> paper.md (+ paper.prompts.md if uncertain)
-tomd paper.html                 # -> paper.md
-tomd *.pdf *.html --outdir out/ # batch mode
-tomd -v paper.pdf               # verbose logging
-tomd -o out.md paper.pdf        # explicit output path (single-file only)
+python -m tomd P3642R4 --workspace-dir ./data            # one paper
+python -m tomd P3642R4 P3700R0 --workspace-dir ./data    # multiple
+python -m tomd 2026-04 --workspace-dir ./data            # every paper in mailing 2026-04
+python -m tomd 2026-04 P3700R0 --workspace-dir ./data    # mix mailing + paper ids
+python -m tomd 2026-04 --workspace-dir ./data --qa       # batch QA scoring
+python -m tomd 2026-04 --workspace-dir ./data -v         # verbose logging
 ```
 
-Also runnable as `python -m tomd.main ...`.
+Mailing-id positionals (matching `YYYY-MM`) expand to every paper id in that mailing's index, in stored order. The mailing index must already exist on disk - run `python -m mailing <id> --workspace-dir DIR` first, otherwise tomd raises `MissingMailingIndexError`.
+
+The pre-0.2 file-path interface (`tomd input.pdf`) was removed.
 
 ### QA mode
 
